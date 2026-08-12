@@ -29,8 +29,9 @@ SITE_NOTE = ("Классические тексты из «аль-Мактаба
 REQUEST_ENDPOINT = "https://formsubmit.co/ibrmur89@gmail.com"
 # Полный адрес сайта — нужен, чтобы после отправки вернуть на свою страницу.
 SITE_URL = "https://muradbek.github.io/ar-books-for-reading"
-# Запасной способ связи, если форма не открылась в браузере читалки.
-CONTACT = "ibrmur89@gmail.com"
+# Свой домен: впиши сюда — рядом с сайтом ляжет файл CNAME, который нужен
+# GitHub Pages. Пусто — сайт живёт на адресе github.io.
+DOMAIN = ""
 
 AR2LAT = dict(zip("ابتثجحخدذرزسشصضطظعغفقكلمنهويةىأإآئؤء",
                   ["a","b","t","th","j","h","kh","d","dh","r","z","s","sh","s","d",
@@ -166,7 +167,6 @@ code {{ font-family:monospace; font-size:15px; }}
 {f'<input type="hidden" name="_next" value="{e(SITE_URL.rstrip(chr(47)))}/thanks.html">' if SITE_URL else ''}
 <input type="submit" value="Отправить заявку">
 </form>
-<p>Если форма не открылась в читалке — просто напишите на <a href="mailto:{e(CONTACT)}?subject=Заявка%20на%20книгу">{e(CONTACT)}</a>.</p>
 
 <footer>
 Книг в библиотеке: {len(books)}.
@@ -219,6 +219,11 @@ open(os.path.join(OUT_DIR, "index.html"), "w", encoding="utf-8").write(INDEX)
 open(os.path.join(OUT_DIR, "thanks.html"), "w", encoding="utf-8").write(THANKS)
 open(os.path.join(OUT_DIR, "catalog.xml"), "w", encoding="utf-8").write(CATALOG)
 open(os.path.join(OUT_DIR, ".nojekyll"), "w").write("")   # GitHub Pages: serve files as-is
+cname = os.path.join(OUT_DIR, "CNAME")
+if DOMAIN:
+    open(cname, "w").write(DOMAIN.strip() + "\n")
+elif os.path.exists(cname):
+    os.remove(cname)
 
 print("site:", OUT_DIR)
 for b in books:
