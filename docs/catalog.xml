@@ -2,25 +2,27 @@
 <feed xmlns="http://www.w3.org/2005/Atom" xmlns:opds="http://opds-spec.org/2010/catalog">
   <id>urn:ar-books-for-reading</id>
   <title>Арабские книги для чтения</title>
-  <updated>2026-08-11T00:00:00Z</updated>
+  <updated>2026-08-12T00:00:00Z</updated>
   <link rel="self" type="application/atom+xml;profile=opds-catalog" href="catalog.xml"/>
   <link rel="start" type="application/atom+xml;profile=opds-catalog" href="catalog.xml"/>
   <entry>
     <title>الرد على الجهمية للدارمي - ت البدر</title>
-    <author><name>عثمان بن سعيد الدارمي</name></author>
+    <author><name>أبو سعيد عثمان بن سعيد الدارمي</name></author>
+    <category term="العقيدة"/>
     <id>urn:book:al-radd-ala-al-jahmiyya.epub</id>
-    <updated>2026-08-11T00:00:00Z</updated>
-    <content type="text">17 глав, 514 КБ</content>
+    <updated>2026-08-12T00:00:00Z</updated>
+    <content type="text">17 глав, 515 КБ</content>
     <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
-          href="books/al-radd-ala-al-jahmiyya.epub" length="527259"/>
+          href="books/al-radd-ala-al-jahmiyya.epub" length="527388"/>
   </entry>
   <entry>
     <title>نقض الدارمي على المريسي - ت الشوامي</title>
-    <author><name>عثمان بن سعيد الدارمي</name></author>
+    <author><name>أبو سعيد عثمان بن سعيد بن خالد بن سعيد الدارمي السجستاني</name></author>
+    <category term="العقيدة"/>
     <id>urn:book:naqd-al-darimi-ala-al-marisi.epub</id>
-    <updated>2026-08-01T00:00:00Z</updated>
+    <updated>2026-08-12T00:00:00Z</updated>
     <content type="text">21 глав, 626 КБ</content>
     <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
-          href="books/naqd-al-darimi-ala-al-marisi.epub" length="641084"/>
+          href="books/naqd-al-darimi-ala-al-marisi.epub" length="641324"/>
   </entry>
 </feed>

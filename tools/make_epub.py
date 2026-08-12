@@ -51,8 +51,22 @@ def split_long_title(t):
         return first, rest
     return t, ""
 
+def card_fields(page_html):
+    """Book-card page: «القسم: العقيدة», «المؤلف: … (ت 280هـ)» and so on.
+    The value runs from the label's span to the next paragraph break."""
+    out = {}
+    for chunk in page_html.split("<span class='title'>")[1:]:
+        label, _, tail = chunk.partition("</span>")
+        value = re.split(r"<p>|<hr|<div", tail, 1)[0]
+        strip = lambda s: html.unescape(re.sub(r"<[^>]+>", "", s)).replace("‌", "").strip(" : \r\n\t")
+        label, value = strip(label), strip(value)
+        if label and value:
+            out.setdefault(label, value)
+    return out
+
 # --- read + clean every source file ---
 BOOK_TITLE = BOOK_AUTHOR = ""
+CARD = {}
 cleaned_pages = []
 
 for si, SRC in enumerate(SRCS):
@@ -63,6 +77,14 @@ for si, SRC in enumerate(SRCS):
         BOOK_TITLE = re.sub(r"\s*-\s*جـ\s*\d+\s*$", "", BOOK_TITLE)   # drop volume suffix
         m = re.search(r"<span class='footnote'>\((.*?)\)</span>", raw)
         BOOK_AUTHOR = html.unescape(m.group(1)).strip() if m else ""
+        card = raw[raw.index("<body>"):].split("<div class='PageText'>")
+        CARD = card_fields(card[1]) if len(card) > 1 else {}
+        # the card's «المؤلف» carries the death year — keep it, it drives
+        # sorting and grouping on the site
+        BOOK_AUTHOR = CARD.get("المؤلف", BOOK_AUTHOR)
+        for k in ("القسم", "المحقق", "الناشر", "الطبعة"):
+            if CARD.get(k):
+                print("%s: %s" % (k, CARD[k]))
 
     body = raw[raw.index("<body>"):]
     pages = body.split("<div class='PageText'>")[1:]
@@ -258,9 +280,13 @@ OPF = f"""<?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="uid" xml:lang="ar" dir="rtl">
 <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
 <dc:identifier id="uid">{uid}</dc:identifier>
-<dc:title>{BOOK_TITLE}</dc:title>
-<dc:creator>{BOOK_AUTHOR}</dc:creator>
+<dc:title>{esc(BOOK_TITLE)}</dc:title>
+<dc:creator>{esc(BOOK_AUTHOR)}</dc:creator>
 <dc:language>ar</dc:language>
+{('<dc:subject>%s</dc:subject>' % esc(CARD['القسم'])) if CARD.get('القسم') else ''}
+{('<dc:contributor>%s</dc:contributor>' % esc(CARD['المحقق'])) if CARD.get('المحقق') else ''}
+{('<dc:publisher>%s</dc:publisher>' % esc(CARD['الناشر'])) if CARD.get('الناشر') else ''}
+{('<dc:description>%s</dc:description>' % esc(CARD['الطبعة'])) if CARD.get('الطبعة') else ''}
 <meta property="dcterms:modified">2026-08-01T00:00:00Z</meta>
 </metadata>
 <manifest>
