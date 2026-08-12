@@ -28,8 +28,7 @@ SITE_NOTE = ("Классические тексты из «аль-Мактаба
 # почта не будет видна в исходнике страницы.
 REQUEST_ENDPOINT = "https://formsubmit.co/ibrmur89@gmail.com"
 # Полный адрес сайта — нужен, чтобы после отправки вернуть на свою страницу.
-# Пока не знаем — оставь пустым, FormSubmit покажет свою страницу «спасибо».
-SITE_URL = ""
+SITE_URL = "https://muradbek.github.io/ar-books-for-reading"
 # Запасной способ связи, если форма не открылась в браузере читалки.
 CONTACT = "ibrmur89@gmail.com"
 
