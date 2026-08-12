@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Арабские книги для чтения</title>
+<style>
+body { background:#fff; color:#000; font-family:Georgia,serif; font-size:18px;
+       line-height:1.5; margin:0 auto; padding:16px; max-width:44em; }
+h1 { font-size:24px; margin:0 0 8px 0; }
+p.note { margin:0 0 20px 0; }
+ul { list-style:none; margin:0; padding:0; }
+li.book { border:1px solid #000; padding:12px; margin:0 0 16px 0; }
+.t { font-size:22px; font-weight:bold; margin-bottom:4px; }
+.a { margin-bottom:8px; }
+.m { font-size:15px; margin-bottom:10px; }
+a.dl { display:block; text-align:center; border:2px solid #000; padding:10px;
+        text-decoration:none; color:#000; font-weight:bold; }
+h2 { font-size:20px; margin:28px 0 8px 0; }
+form { border:1px solid #000; padding:12px; }
+label { display:block; margin:0 0 12px 0; }
+label span { display:block; margin-bottom:4px; }
+input[type=text], textarea { width:100%; box-sizing:border-box; font-size:18px;
+        font-family:inherit; padding:8px; border:1px solid #000; }
+input[type=submit] { display:block; width:100%; font-size:18px; font-family:inherit;
+        font-weight:bold; background:#fff; color:#000; border:2px solid #000; padding:10px; }
+.hp { display:none; }
+footer { margin-top:24px; font-size:15px; border-top:1px solid #000; padding-top:12px; }
+code { font-family:monospace; font-size:15px; }
+</style>
+</head>
+<body>
+<h1>Арабские книги для чтения</h1>
+<p class="note">Классические тексты из «аль-Мактаба аш-Шамиля», переверстанные под электронные читалки: без сносок и номеров печатных страниц, с оглавлением и встроенным шрифтом Amiri.</p>
+<ul>
+<li class="book">
+<div class="t" dir="rtl" lang="ar">الرد على الجهمية للدارمي - ت البدر</div>
+<div class="a" dir="rtl" lang="ar">عثمان بن سعيد الدارمي</div>
+<div class="m">17 глав &middot; 514 КБ &middot; обновлено 2026-08-11</div>
+<a class="dl" href="books/al-radd-ala-al-jahmiyya.epub">Скачать EPUB</a>
+</li>
+<li class="book">
+<div class="t" dir="rtl" lang="ar">نقض الدارمي على المريسي - ت الشوامي</div>
+<div class="a" dir="rtl" lang="ar">عثمان بن سعيد الدارمي</div>
+<div class="m">21 глав &middot; 626 КБ &middot; обновлено 2026-08-01</div>
+<a class="dl" href="books/naqd-al-darimi-ala-al-marisi.epub">Скачать EPUB</a>
+</li>
+</ul>
+
+<h2>Заказать книгу</h2>
+<p>Нужной книги здесь нет? Напишите, какую подготовить — сверстаю так же и выложу сюда.</p>
+<form action="https://formsubmit.co/ibrmur89@gmail.com" method="POST" accept-charset="utf-8">
+<label><span>Название книги <b>*</b></span>
+<input type="text" name="Книга" required></label>
+<label><span>Автор или издание, если знаете (например: ت البدر)</span>
+<input type="text" name="Издание"></label>
+<label><span>Ссылка на книгу в «Шамиле» или где её взять</span>
+<input type="text" name="Ссылка"></label>
+<label><span>Как с вами связаться — почта или ник (по желанию)</span>
+<input type="text" name="Контакт"></label>
+<label><span>Примечание</span>
+<textarea name="Примечание" rows="3"></textarea></label>
+<input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off">
+<input type="hidden" name="_subject" value="Заявка на книгу">
+<input type="hidden" name="_captcha" value="false">
+<input type="hidden" name="_template" value="table">
+
+<input type="submit" value="Отправить заявку">
+</form>
+<p>Если форма не открылась в читалке — просто напишите на <a href="mailto:ibrmur89@gmail.com?subject=Заявка%20на%20книгу">ibrmur89@gmail.com</a>.</p>
+
+<footer>
+Книг в библиотеке: 2.
+Для KOReader есть OPDS-каталог: <code>catalog.xml</code> — добавьте адрес этой
+страницы с <code>/catalog.xml</code> на конце, и книги будут видны прямо в читалке.
+</footer>
+</body>
+</html>
