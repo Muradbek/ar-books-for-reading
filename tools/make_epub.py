@@ -252,7 +252,13 @@ def heading_level(t):
 # Сжимаем уровни: пропущенная ступень (باب без مسألة) не должна делать первый
 # فصل родителем следующих — одинаковые заголовки остаются соседями.
 levels, stack = [], []      # stack: (уровень по слову, уровень в дереве)
-for lv in (heading_level(t) for t, _ in chapters):
+for i, (title_, _) in enumerate(chapters):
+    # Карточка книги — отдельный пункт, а не корень, под который сваливается
+    # весь том: том может начинаться с середины книги, без заголовка كتاب.
+    if i == 0 and title_ == "بطاقة الكتاب":
+        levels.append(1)
+        continue
+    lv = heading_level(title_)
     while stack and stack[-1][0] >= lv:
         stack.pop()
     eff = stack[-1][1] + 1 if stack else 1
