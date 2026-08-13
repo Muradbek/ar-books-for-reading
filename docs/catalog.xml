@@ -2,7 +2,7 @@
 <feed xmlns="http://www.w3.org/2005/Atom" xmlns:opds="http://opds-spec.org/2010/catalog">
   <id>urn:ar-books-for-reading</id>
   <title>Арабские книги для чтения</title>
-  <updated>2026-08-12T00:00:00Z</updated>
+  <updated>2026-08-13T00:00:00Z</updated>
   <link rel="self" type="application/atom+xml;profile=opds-catalog" href="catalog.xml"/>
   <link rel="start" type="application/atom+xml;profile=opds-catalog" href="catalog.xml"/>
   <entry>
@@ -24,5 +24,185 @@
     <content type="text">21 глав, 626 КБ</content>
     <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
           href="books/naqd-al-darimi-ala-al-marisi.epub" length="641324"/>
+  </entry>
+  <entry>
+    <title>الحاوي الكبير - جـ 1</title>
+    <author><name>أبو الحسن علي بن محمد بن محمد بن حبيب البصري البغدادي، الشهير بالماوردي</name></author>
+    <category term="الفقه الشافعي"/>
+    <id>urn:book:al-hawi-al-kabir-01.epub</id>
+    <updated>2026-08-13T00:00:00Z</updated>
+    <content type="text">380 глав, 1.1 МБ</content>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
+          href="books/al-hawi-al-kabir-01.epub" length="1143648"/>
+  </entry>
+  <entry>
+    <title>الحاوي الكبير - جـ 2</title>
+    <author><name>أبو الحسن علي بن محمد بن محمد بن حبيب البصري البغدادي، الشهير بالماوردي</name></author>
+    <category term="الفقه الشافعي"/>
+    <id>urn:book:al-hawi-al-kabir-02.epub</id>
+    <updated>2026-08-13T00:00:00Z</updated>
+    <content type="text">501 глав, 1.3 МБ</content>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
+          href="books/al-hawi-al-kabir-02.epub" length="1336288"/>
+  </entry>
+  <entry>
+    <title>الحاوي الكبير - جـ 3</title>
+    <author><name>أبو الحسن علي بن محمد بن محمد بن حبيب البصري البغدادي، الشهير بالماوردي</name></author>
+    <category term="الفقه الشافعي"/>
+    <id>urn:book:al-hawi-al-kabir-03.epub</id>
+    <updated>2026-08-13T00:00:00Z</updated>
+    <content type="text">497 глав, 1.2 МБ</content>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
+          href="books/al-hawi-al-kabir-03.epub" length="1306866"/>
+  </entry>
+  <entry>
+    <title>الحاوي الكبير - جـ 4</title>
+    <author><name>أبو الحسن علي بن محمد بن محمد بن حبيب البصري البغدادي، الشهير بالماوردي</name></author>
+    <category term="الفقه الشافعي"/>
+    <id>urn:book:al-hawi-al-kabir-04.epub</id>
+    <updated>2026-08-13T00:00:00Z</updated>
+    <content type="text">425 глав, 1.1 МБ</content>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
+          href="books/al-hawi-al-kabir-04.epub" length="1174901"/>
+  </entry>
+  <entry>
+    <title>الحاوي الكبير - جـ 5</title>
+    <author><name>أبو الحسن علي بن محمد بن محمد بن حبيب البصري البغدادي، الشهير بالماوردي</name></author>
+    <category term="الفقه الشافعي"/>
+    <id>urn:book:al-hawi-al-kabir-05.epub</id>
+    <updated>2026-08-13T00:00:00Z</updated>
+    <content type="text">390 глав, 1.1 МБ</content>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
+          href="books/al-hawi-al-kabir-05.epub" length="1143163"/>
+  </entry>
+  <entry>
+    <title>الحاوي الكبير - جـ 6</title>
+    <author><name>أبو الحسن علي بن محمد بن محمد بن حبيب البصري البغدادي، الشهير بالماوردي</name></author>
+    <category term="الفقه الشافعي"/>
+    <id>urn:book:al-hawi-al-kabir-06.epub</id>
+    <updated>2026-08-13T00:00:00Z</updated>
+    <content type="text">596 глав, 1.4 МБ</content>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
+          href="books/al-hawi-al-kabir-06.epub" length="1420874"/>
+  </entry>
+  <entry>
+    <title>الحاوي الكبير - جـ 7</title>
+    <author><name>أبو الحسن علي بن محمد بن محمد بن حبيب البصري البغدادي، الشهير بالماوردي</name></author>
+    <category term="الفقه الشافعي"/>
+    <id>urn:book:al-hawi-al-kabir-07.epub</id>
+    <updated>2026-08-13T00:00:00Z</updated>
+    <content type="text">626 глав, 1.4 МБ</content>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
+          href="books/al-hawi-al-kabir-07.epub" length="1500805"/>
+  </entry>
+  <entry>
+    <title>الحاوي الكبير - جـ 8</title>
+    <author><name>أبو الحسن علي بن محمد بن محمد بن حبيب البصري البغدادي، الشهير بالماوردي</name></author>
+    <category term="الفقه الشافعي"/>
+    <id>urn:book:al-hawi-al-kabir-08.epub</id>
+    <updated>2026-08-13T00:00:00Z</updated>
+    <content type="text">565 глав, 1.4 МБ</content>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
+          href="books/al-hawi-al-kabir-08.epub" length="1478237"/>
+  </entry>
+  <entry>
+    <title>الحاوي الكبير - جـ 9</title>
+    <author><name>أبو الحسن علي بن محمد بن محمد بن حبيب البصري البغدادي، الشهير بالماوردي</name></author>
+    <category term="الفقه الشافعي"/>
+    <id>urn:book:al-hawi-al-kabir-09.epub</id>
+    <updated>2026-08-13T00:00:00Z</updated>
+    <content type="text">598 глав, 1.5 МБ</content>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
+          href="books/al-hawi-al-kabir-09.epub" length="1536642"/>
+  </entry>
+  <entry>
+    <title>الحاوي الكبير - جـ 10</title>
+    <author><name>أبو الحسن علي بن محمد بن محمد بن حبيب البصري البغدادي، الشهير بالماوردي</name></author>
+    <category term="الفقه الشافعي"/>
+    <id>urn:book:al-hawi-al-kabir-10.epub</id>
+    <updated>2026-08-13T00:00:00Z</updated>
+    <content type="text">546 глав, 1.3 МБ</content>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
+          href="books/al-hawi-al-kabir-10.epub" length="1361546"/>
+  </entry>
+  <entry>
+    <title>الحاوي الكبير - جـ 11</title>
+    <author><name>أبو الحسن علي بن محمد بن محمد بن حبيب البصري البغدادي، الشهير بالماوردي</name></author>
+    <category term="الفقه الشافعي"/>
+    <id>urn:book:al-hawi-al-kabir-11.epub</id>
+    <updated>2026-08-13T00:00:00Z</updated>
+    <content type="text">493 глав, 1.3 МБ</content>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
+          href="books/al-hawi-al-kabir-11.epub" length="1341070"/>
+  </entry>
+  <entry>
+    <title>الحاوي الكبير - جـ 12</title>
+    <author><name>أبو الحسن علي بن محمد بن محمد بن حبيب البصري البغدادي، الشهير بالماوردي</name></author>
+    <category term="الفقه الشافعي"/>
+    <id>urn:book:al-hawi-al-kabir-12.epub</id>
+    <updated>2026-08-13T00:00:00Z</updated>
+    <content type="text">422 глав, 1.1 МБ</content>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
+          href="books/al-hawi-al-kabir-12.epub" length="1153324"/>
+  </entry>
+  <entry>
+    <title>الحاوي الكبير - جـ 13</title>
+    <author><name>أبو الحسن علي بن محمد بن محمد بن حبيب البصري البغدادي، الشهير بالماوردي</name></author>
+    <category term="الفقه الشافعي"/>
+    <id>urn:book:al-hawi-al-kabir-13.epub</id>
+    <updated>2026-08-13T00:00:00Z</updated>
+    <content type="text">441 глав, 1.2 МБ</content>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
+          href="books/al-hawi-al-kabir-13.epub" length="1219437"/>
+  </entry>
+  <entry>
+    <title>الحاوي الكبير - جـ 14</title>
+    <author><name>أبو الحسن علي بن محمد بن محمد بن حبيب البصري البغدادي، الشهير بالماوردي</name></author>
+    <category term="الفقه الشافعي"/>
+    <id>urn:book:al-hawi-al-kabir-14.epub</id>
+    <updated>2026-08-13T00:00:00Z</updated>
+    <content type="text">268 глав, 1002 КБ</content>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
+          href="books/al-hawi-al-kabir-14.epub" length="1026993"/>
+  </entry>
+  <entry>
+    <title>الحاوي الكبير - جـ 15</title>
+    <author><name>أبو الحسن علي بن محمد بن محمد بن حبيب البصري البغدادي، الشهير بالماوردي</name></author>
+    <category term="الفقه الشافعي"/>
+    <id>urn:book:al-hawi-al-kabir-15.epub</id>
+    <updated>2026-08-13T00:00:00Z</updated>
+    <content type="text">474 глав, 1.2 МБ</content>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
+          href="books/al-hawi-al-kabir-15.epub" length="1287767"/>
+  </entry>
+  <entry>
+    <title>الحاوي الكبير - جـ 16</title>
+    <author><name>أبو الحسن علي بن محمد بن محمد بن حبيب البصري البغدادي، الشهير بالماوردي</name></author>
+    <category term="الفقه الشافعي"/>
+    <id>urn:book:al-hawi-al-kabir-16.epub</id>
+    <updated>2026-08-13T00:00:00Z</updated>
+    <content type="text">227 глав, 903 КБ</content>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
+          href="books/al-hawi-al-kabir-16.epub" length="925460"/>
+  </entry>
+  <entry>
+    <title>الحاوي الكبير - جـ 17</title>
+    <author><name>أبو الحسن علي بن محمد بن محمد بن حبيب البصري البغدادي، الشهير بالماوردي</name></author>
+    <category term="الفقه الشافعي"/>
+    <id>urn:book:al-hawi-al-kabir-17.epub</id>
+    <updated>2026-08-13T00:00:00Z</updated>
+    <content type="text">361 глав, 1.0 МБ</content>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
+          href="books/al-hawi-al-kabir-17.epub" length="1090553"/>
+  </entry>
+  <entry>
+    <title>الحاوي الكبير - جـ 18</title>
+    <author><name>أبو الحسن علي بن محمد بن محمد بن حبيب البصري البغدادي، الشهير بالماوردي</name></author>
+    <category term="الفقه الشافعي"/>
+    <id>urn:book:al-hawi-al-kabir-18.epub</id>
+    <updated>2026-08-13T00:00:00Z</updated>
+    <content type="text">350 глав, 965 КБ</content>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
+          href="books/al-hawi-al-kabir-18.epub" length="988881"/>
   </entry>
 </feed>

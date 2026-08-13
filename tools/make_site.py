@@ -67,9 +67,13 @@ def meta(path):
     def tag(t):
         m = re.search(r"<dc:%s[^>]*>(.*?)</dc:%s>" % (t, t), x, re.S)
         return html.unescape(m.group(1)).strip() if m else ""
+    m = re.search(r'<meta property="belongs-to-collection"[^>]*>(.*?)</meta>', x, re.S)
+    collection = html.unescape(m.group(1)).strip() if m else ""
+    m = re.search(r'<meta[^>]*property="group-position"[^>]*>(\d+)</meta>', x)
     return {"title": tag("title"), "author": tag("creator"), "category": tag("subject"),
             "editor": tag("contributor"), "publisher": tag("publisher"),
-            "edition": tag("description"), "chapters": len(re.findall(r"<itemref\b", x))}
+            "edition": tag("description"), "chapters": len(re.findall(r"<itemref\b", x)),
+            "collection": collection, "volume": int(m.group(1)) if m else None}
 
 
 def death_year(author):
@@ -119,25 +123,44 @@ for b in books:
     if not (os.path.exists(dst) and os.path.getsize(dst) == b["size"]):
         shutil.copy2(b["path"], dst)
 
+# Многотомники: 18 файлов الحاوي الكبير — это одна книга со списком томов,
+# а не восемнадцать строчек подряд.
+units, by_key = [], {}
+for b in books:
+    key = b["collection"] or b["file"]
+    u = by_key.get(key)
+    if u is None:
+        u = {"title": b["collection"] or b["title"], "author_name": b["author_name"],
+             "year": b["year"], "editor": b["editor"], "publisher": b["publisher"],
+             "category": b["category"], "vols": []}
+        by_key[key] = u
+        units.append(u)
+    u["vols"].append(b)
+for u in units:
+    u["vols"].sort(key=lambda b: (b["volume"] is None, b["volume"] or 0, b["title"]))
+    u["chapters"] = sum(b["chapters"] for b in u["vols"])
+    u["size"] = sum(b["size"] for b in u["vols"])
+    u["date"] = max(b["date"] for b in u["vols"])
+
 # Один автор в разных изданиях записан по-разному («… الدارمي» и
 # «… الدارمي السجستاني»): считаем их одним, если совпал год смерти и есть
 # общие части имени.
-authors = []   # [{name, year, books}]
-for b in sorted(books, key=lambda b: (b["year"] is None, b["year"] or 0)):
+authors = []   # [{name, year, units}]
+for u in sorted(units, key=lambda u: (u["year"] is None, u["year"] or 0)):
     hit = None
     for a in authors:
-        if a["year"] == b["year"] and len(tokens(a["name"]) & tokens(b["author_name"])) >= 2:
+        if a["year"] == u["year"] and len(tokens(a["name"]) & tokens(u["author_name"])) >= 2:
             hit = a
             break
     if hit is None:
-        authors.append({"name": b["author_name"], "year": b["year"], "books": [b]})
+        authors.append({"name": u["author_name"], "year": u["year"], "units": [u]})
     else:
-        hit["books"].append(b)
-        if len(b["author_name"]) < len(hit["name"]):
-            hit["name"] = b["author_name"]      # короткая форма читается легче
+        hit["units"].append(u)
+        if len(u["author_name"]) < len(hit["name"]):
+            hit["name"] = u["author_name"]      # короткая форма читается легче
 
 cats = {}
-for b in books:
+for b in units:
     cats.setdefault(b["category"], []).append(b)
 cat_names = sorted(cats, key=lambda c: (CATEGORY_ORDER.index(c) if c in CATEGORY_ORDER
                                         else len(CATEGORY_ORDER), c))
@@ -164,6 +187,8 @@ li.book { border:1px solid #000; padding:12px; margin:0 0 14px 0; }
 .m { font-size:15px; margin-bottom:10px; }
 a.dl { display:block; text-align:center; border:2px solid #000; padding:10px;
        text-decoration:none; color:#000; font-weight:bold; }
+.vols a { display:inline-block; min-width:3.4em; text-align:center; border:2px solid #000;
+       padding:8px 6px; margin:0 6px 6px 0; text-decoration:none; color:#000; font-weight:bold; }
 form { border:1px solid #000; padding:12px; }
 label { display:block; margin:0 0 12px 0; }
 label span { display:block; margin-bottom:4px; }
@@ -184,18 +209,27 @@ def nav(cur):
     return "<nav>" + " &nbsp;·&nbsp; ".join(parts) + "</nav>"
 
 
-def book_li(b, show_author=True):
+def book_li(u, show_author=True):
     bits = []
     if show_author:
-        bits.append(f'<div class="a" dir="rtl" lang="ar">{e(b["author_name"])}</div>')
-    meta_line = [f'{b["chapters"]} глав', mb(b["size"])]
-    if b["editor"]:
-        meta_line.insert(0, "тахкык: " + b["editor"])
+        bits.append(f'<div class="a" dir="rtl" lang="ar">{e(u["author_name"])}</div>')
+    meta_line = [f'{u["chapters"]} глав', mb(u["size"])]
+    if len(u["vols"]) > 1:
+        meta_line.insert(0, "%d томов" % len(u["vols"]))
+    if u["editor"]:
+        meta_line.insert(0, "тахкык: " + u["editor"])
+    if len(u["vols"]) == 1:
+        dl = f'<a class="dl" href="books/{quote(u["vols"][0]["file"])}">Скачать EPUB</a>'
+    else:
+        links = "".join(
+            f'<a href="books/{quote(v["file"])}">т.&nbsp;{v["volume"] or i + 1}</a>'
+            for i, v in enumerate(u["vols"]))
+        dl = f'<div class="vols">{links}</div>'
     return f"""<li class="book">
-<div class="t" dir="rtl" lang="ar">{e(b["title"])}</div>
+<div class="t" dir="rtl" lang="ar">{e(u["title"])}</div>
 {''.join(bits)}
 <div class="m" dir="rtl" lang="ar">{e(' · '.join(meta_line))}</div>
-<a class="dl" href="books/{quote(b["file"])}">Скачать EPUB</a>
+{dl}
 </li>"""
 
 
@@ -213,7 +247,7 @@ def page(fname, title, body):
 <h1>{e(SITE_TITLE)}</h1>
 {nav(fname)}
 {body}
-<footer>Книг в библиотеке: {len(books)}. Раздел «{e(cur_title)}».<br>
+<footer>Книг в библиотеке: {len(units)}, файлов: {len(books)}. Раздел «{e(cur_title)}».<br>
 Для KOReader есть OPDS-каталог: адрес сайта с <code>/catalog.xml</code> на конце —
 книги будут видны прямо в читалке.</footer>
 </body>
@@ -257,7 +291,7 @@ INDEX = page("index.html", SITE_TITLE,
 # --- authors.html -----------------------------------------------------------
 blocks = []
 for a in authors:
-    items = sorted(a["books"], key=lambda b: b["title"])
+    items = sorted(a["units"], key=lambda b: b["title"])
     blocks.append(f'<h2 dir="rtl" lang="ar">{e(a["name"])}'
                   f'<span class="ru">{hijri(a["year"])} · книг: {len(items)}</span></h2>')
     blocks.append("<ul>" + "".join(book_li(b, show_author=False) for b in items) + "</ul>")
@@ -266,7 +300,7 @@ AUTHORS = page("authors.html", "По авторам — " + SITE_TITLE,
                + "\n".join(blocks))
 
 # --- books.html -------------------------------------------------------------
-flat = sorted(books, key=lambda b: (b["year"] is None, b["year"] or 0, b["title"]))
+flat = sorted(units, key=lambda b: (b["year"] is None, b["year"] or 0, b["title"]))
 BOOKS = page("books.html", "Все книги — " + SITE_TITLE,
              '<p class="note">От старых к новым: порядок по году смерти автора.</p>'
              + "<ul>" + "".join(book_li(b) for b in flat) + "</ul>")
@@ -284,9 +318,10 @@ THANKS = f"""<!DOCTYPE html>
 </html>
 """
 
-# --- OPDS -------------------------------------------------------------------
+# --- OPDS: здесь запись на каждый файл, иначе том не скачать ----------------
 entries = []
-for b in flat:
+for b in sorted(books, key=lambda b: (b["year"] is None, b["year"] or 0,
+                                      b["collection"] or b["title"], b["volume"] or 0)):
     entries.append(f"""  <entry>
     <title>{e(b['title'])}</title>
     <author><name>{e(b['author_name'])}</name></author>
@@ -327,5 +362,8 @@ for c in cat_names:
     print("  [%s] %d кн." % (c, len(cats[c])))
 for a in authors:
     print("  - %s (%s): %s" % (a["name"], hijri(a["year"]),
-                               ", ".join(b["title"][:40] for b in a["books"])))
-print("%d книг, %d разделов, %d авторов" % (len(books), len(cat_names), len(authors)))
+                               ", ".join("%s%s" % (u["title"][:40],
+                                                   " [%d т.]" % len(u["vols"]) if len(u["vols"]) > 1 else "")
+                                         for u in a["units"])))
+print("%d книг (%d файлов), %d разделов, %d авторов"
+      % (len(units), len(books), len(cat_names), len(authors)))

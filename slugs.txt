@@ -2,3 +2,21 @@
 # Если книги здесь нет — имя сгенерится автоматом (транслит с арабского).
 نقض الدارمي على المريسي.epub = naqd-al-darimi-ala-al-marisi.epub
 الرد على الجهمية للدارمي.epub = al-radd-ala-al-jahmiyya.epub
+الحاوي الكبير - جـ 1.epub = al-hawi-al-kabir-01.epub
+الحاوي الكبير - جـ 2.epub = al-hawi-al-kabir-02.epub
+الحاوي الكبير - جـ 3.epub = al-hawi-al-kabir-03.epub
+الحاوي الكبير - جـ 4.epub = al-hawi-al-kabir-04.epub
+الحاوي الكبير - جـ 5.epub = al-hawi-al-kabir-05.epub
+الحاوي الكبير - جـ 6.epub = al-hawi-al-kabir-06.epub
+الحاوي الكبير - جـ 7.epub = al-hawi-al-kabir-07.epub
+الحاوي الكبير - جـ 8.epub = al-hawi-al-kabir-08.epub
+الحاوي الكبير - جـ 9.epub = al-hawi-al-kabir-09.epub
+الحاوي الكبير - جـ 10.epub = al-hawi-al-kabir-10.epub
+الحاوي الكبير - جـ 11.epub = al-hawi-al-kabir-11.epub
+الحاوي الكبير - جـ 12.epub = al-hawi-al-kabir-12.epub
+الحاوي الكبير - جـ 13.epub = al-hawi-al-kabir-13.epub
+الحاوي الكبير - جـ 14.epub = al-hawi-al-kabir-14.epub
+الحاوي الكبير - جـ 15.epub = al-hawi-al-kabir-15.epub
+الحاوي الكبير - جـ 16.epub = al-hawi-al-kabir-16.epub
+الحاوي الكبير - جـ 17.epub = al-hawi-al-kabir-17.epub
+الحاوي الكبير - جـ 18.epub = al-hawi-al-kabir-18.epub

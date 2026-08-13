@@ -74,7 +74,12 @@ for si, SRC in enumerate(SRCS):
     if not BOOK_TITLE:
         m = re.search(r"<title>(.*?)</title>", raw, re.S)
         BOOK_TITLE = html.unescape(m.group(1)).strip() if m else os.path.splitext(os.path.basename(SRC))[0]
-        BOOK_TITLE = re.sub(r"\s*-\s*جـ\s*\d+\s*$", "", BOOK_TITLE)   # drop volume suffix
+        # «الحاوي الكبير - جـ 1» → серия + номер тома. Когда тома сливаются
+        # в один файл, номера нет: это уже вся книга.
+        m = re.search(r"جـ\s*(\d+)", BOOK_TITLE)
+        VOLUME = int(m.group(1)) if (m and len(SRCS) == 1) else None
+        SERIES = re.sub(r"\s*-\s*جـ\s*\d+\s*$", "", BOOK_TITLE)
+        BOOK_TITLE = SERIES if VOLUME is None else "%s - جـ %d" % (SERIES, VOLUME)
         m = re.search(r"<span class='footnote'>\((.*?)\)</span>", raw)
         BOOK_AUTHOR = html.unescape(m.group(1)).strip() if m else ""
         card = raw[raw.index("<body>"):].split("<div class='PageText'>")
@@ -143,6 +148,10 @@ for si, SRC in enumerate(SRCS):
         # 6) headings (double-quoted class) -> markers
         def head(m):
             t = m.group(1).replace("&#8204;", "").replace("‌", "").replace("&nbsp;", " ")
+            # Shamela sometimes wraps a fragment of a Qur'anic quote in a title
+            # span («فَصْلِ} [»): braces mean it is body text, not a heading.
+            if "{" in t or "}" in t:
+                return t
             t, rest = split_long_title(re.sub(r"\s+", " ", t).strip())
             return PARA + H + t + HE + PARA + (rest + PARA if rest else "")
         page = re.sub(r'<span class="title">(.*?)</span>', head, page, flags=re.S)
@@ -219,8 +228,36 @@ if cur:
     chapters.append((cur_title, cur))
 
 print("chapters:", len(chapters))
-for t, ps in chapters:
+for t, ps in chapters[:40]:
     print(" -", t[:60], f"({len(ps)} paras)")
+if len(chapters) > 40:
+    print("   … ещё %d" % (len(chapters) - 40))
+
+# --- уровень заголовка: كتاب > باب > مسألة > فصل ---------------------------
+def norm_head(t):
+    t = bare(re.sub(r"[\[\]\(\)\{\}«»\"':،.]", " ", t))
+    t = re.sub(r"[أإآٱ]", "ا", t).replace("ة", "ه").replace("ى", "ي")
+    return t.strip()
+
+# Слово должно совпасть целиком: «كتابة المرتد» — это не كتاب целиком.
+LEVEL_WORDS = {"كتاب": 1,
+               "باب": 2, "ابواب": 2, "مقدمه": 2, "خاتمه": 2, "تمهيد": 2, "بطاقه": 2,
+               "مساله": 3, "مسايل": 3,
+               "فصل": 4, "فصول": 4, "فرع": 4}
+
+def heading_level(t):
+    first = (norm_head(t).split() or [""])[0]
+    return LEVEL_WORDS.get(first, 2)
+
+# Сжимаем уровни: пропущенная ступень (باب без مسألة) не должна делать первый
+# فصل родителем следующих — одинаковые заголовки остаются соседями.
+levels, stack = [], []      # stack: (уровень по слову, уровень в дереве)
+for lv in (heading_level(t) for t, _ in chapters):
+    while stack and stack[-1][0] >= lv:
+        stack.pop()
+    eff = stack[-1][1] + 1 if stack else 1
+    stack.append((lv, eff))
+    levels.append(eff)
 
 # --- emit XHTML ---
 def esc(s):
@@ -287,6 +324,9 @@ OPF = f"""<?xml version="1.0" encoding="utf-8"?>
 {('<dc:contributor>%s</dc:contributor>' % esc(CARD['المحقق'])) if CARD.get('المحقق') else ''}
 {('<dc:publisher>%s</dc:publisher>' % esc(CARD['الناشر'])) if CARD.get('الناشر') else ''}
 {('<dc:description>%s</dc:description>' % esc(CARD['الطبعة'])) if CARD.get('الطبعة') else ''}
+{('''<meta property="belongs-to-collection" id="series">%s</meta>
+<meta refines="#series" property="collection-type">set</meta>
+<meta refines="#series" property="group-position">%d</meta>''' % (esc(SERIES), VOLUME)) if VOLUME else ''}
 <meta property="dcterms:modified">2026-08-01T00:00:00Z</meta>
 </metadata>
 <manifest>
@@ -303,26 +343,58 @@ OPF = f"""<?xml version="1.0" encoding="utf-8"?>
 </package>
 """
 
-nav_lis = "\n".join(
-    f'<li><a href="{fn}">{esc(title)}</a></li>' for fn, title, _ in files)
+# --- дерево оглавления ------------------------------------------------------
+def build_tree(files, levels):
+    root = []
+    stack = [(0, root)]
+    for (fn, title, _), lv in zip(files, levels):
+        node = {"fn": fn, "title": title, "kids": []}
+        while stack[-1][0] >= lv:
+            stack.pop()
+        stack[-1][1].append(node)
+        stack.append((lv, node["kids"]))
+    return root
+
+def render_nav(nodes):
+    out = ["<ol>"]
+    for n in nodes:
+        out.append(f'<li><a href="{n["fn"]}">{esc(n["title"])}</a>')
+        if n["kids"]:
+            out.append(render_nav(n["kids"]))
+        out.append("</li>")
+    out.append("</ol>")
+    return "\n".join(out)
+
+_np = [0]
+def render_ncx(nodes):
+    out = []
+    for n in nodes:
+        _np[0] += 1
+        i = _np[0]
+        kids = render_ncx(n["kids"]) if n["kids"] else ""
+        out.append(f'<navPoint id="np{i}" playOrder="{i}">'
+                   f'<navLabel><text>{esc(n["title"])}</text></navLabel>'
+                   f'<content src="{n["fn"]}"/>{kids}</navPoint>')
+    return "\n".join(out)
+
+tree = build_tree(files, levels)
+max_depth = max(levels) if levels else 1
+print("глубина оглавления:", max_depth, "| верхних пунктов:", len(tree))
+
 NAV = f"""<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="ar" lang="ar" dir="rtl">
 <head><meta charset="utf-8"/><title>الفهرس</title>
 <link rel="stylesheet" type="text/css" href="style.css"/></head>
 <body><nav epub:type="toc" id="toc"><h2>الفهرس</h2>
-<ol>
-{nav_lis}
-</ol>
+{render_nav(tree)}
 </nav></body></html>
 """
 
-navpoints = "\n".join(
-    f'<navPoint id="np{i}" playOrder="{i+1}"><navLabel><text>{esc(title)}</text></navLabel><content src="{fn}"/></navPoint>'
-    for i, (fn, title, _) in enumerate(files))
+navpoints = render_ncx(tree)
 NCX = f"""<?xml version="1.0" encoding="utf-8"?>
 <ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1" xml:lang="ar">
-<head><meta name="dtb:uid" content="{uid}"/><meta name="dtb:depth" content="1"/>
+<head><meta name="dtb:uid" content="{uid}"/><meta name="dtb:depth" content="{max_depth}"/>
 <meta name="dtb:totalPageCount" content="0"/><meta name="dtb:maxPageNumber" content="0"/></head>
 <docTitle><text>{BOOK_TITLE}</text></docTitle>
 <navMap>
