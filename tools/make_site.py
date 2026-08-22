@@ -11,7 +11,7 @@ fonts, no images, high contrast, big tap targets.
 
 usage: python make_site.py [book-dir] [out-dir]
 """
-import os, re, sys, html, zipfile, shutil, datetime
+import os, re, sys, html, json, zipfile, shutil, datetime
 from urllib.parse import quote
 
 args = [a for a in sys.argv[1:] if not a.startswith("-")]
@@ -36,6 +36,23 @@ SITE_URL = "https://translatearabic.org"
 # Свой домен: впиши сюда — рядом с сайтом ляжет файл CNAME, который нужен
 # GitHub Pages. Пусто — сайт живёт на адресе github.io.
 DOMAIN = "translatearabic.org"
+
+# --- SEO и счётчики ---------------------------------------------------------
+# Номер счётчика Яндекс Метрики (цифры). Пусто — счётчик не вставляется.
+METRIKA_ID = ""
+# Ключ IndexNow (Bing и Яндекс подтверждают им право слать URL на переобход):
+# кладётся в корень сайта файлом <ключ>.txt.
+INDEXNOW_KEY = "8b2df7cedc824992a4e745d083c116e0"
+# Описания страниц для поисковиков; ключи — имена файлов из PAGES.
+DESCRIPTIONS = {
+    "index.html": ("Классические арабские тексты из «аль-Мактаба аш-Шамиля» в EPUB "
+                   "для электронных читалок: с оглавлением, без сносок мухаккика, "
+                   "со встроенным шрифтом. Скачать бесплатно."),
+    "authors.html": ("Арабские книги по авторам, от ранних к поздним по году смерти — "
+                     "скачать в EPUB для электронной читалки."),
+    "books.html": ("Все арабские книги библиотеки одним списком, от старых к новым — "
+                   "скачать бесплатно в EPUB."),
+}
 
 # Порядок разделов как в «Шамиле»: сначала эти, остальные — по алфавиту следом.
 CATEGORY_ORDER = [
@@ -233,6 +250,51 @@ def book_li(u, show_author=True):
 </li>"""
 
 
+def page_url(fname):
+    base = SITE_URL.rstrip("/")
+    return base + "/" if fname == "index.html" else "%s/%s" % (base, fname)
+
+
+def seo_head(fname, title):
+    """Тот же набор, что на dxfviewer.app и pdfviewer.work — и не больше."""
+    url, desc = page_url(fname), DESCRIPTIONS.get(fname, "")
+    lines = [
+        f'<meta name="description" content="{e(desc)}">',
+        '<meta name="robots" content="index, follow, max-image-preview:large, '
+        'max-snippet:-1, max-video-preview:-1">',
+        f'<link rel="canonical" href="{url}">',
+        f'<link rel="alternate" hreflang="ru" href="{url}">',
+        f'<link rel="alternate" hreflang="x-default" href="{url}">',
+        '<meta property="og:type" content="website">',
+        f'<meta property="og:url" content="{url}">',
+        f'<meta property="og:title" content="{e(title)}">',
+        f'<meta property="og:description" content="{e(desc)}">',
+        f'<meta property="og:site_name" content="{e(SITE_TITLE)}">',
+        '<meta property="og:locale" content="ru_RU">',
+    ]
+    if fname == "index.html":
+        ld = {"@context": "https://schema.org", "@type": "WebSite",
+              "url": url, "name": SITE_TITLE, "description": SITE_NOTE,
+              "inLanguage": ["ru", "ar"]}
+        lines.append('<script type="application/ld+json">%s</script>'
+                     % json.dumps(ld, ensure_ascii=False))
+    return "\n".join(lines)
+
+
+# Счётчик Метрики: сам скрипт на читалках без JS не выполнится, но у Метрики
+# есть <noscript>-пиксель — визиты с читалок тоже будут видны.
+METRIKA = """
+<script type="text/javascript">
+(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}
+k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
+(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=%(id)s','ym');
+ym(%(id)s,'init',{clickmap:true,trackLinks:true,accurateTrackBounce:true,webvisor:true});
+</script>
+<noscript><div><img src="https://mc.yandex.ru/watch/%(id)s" style="position:absolute; left:-9999px;" alt=""/></div></noscript>
+""" % {"id": METRIKA_ID} if METRIKA_ID else ""
+
+
 def page(fname, title, body):
     cur_title = next(t for f, t in PAGES if f == fname)
     return f"""<!DOCTYPE html>
@@ -241,7 +303,8 @@ def page(fname, title, body):
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{e(title)}</title>
-<style>{CSS}</style>
+{seo_head(fname, title)}
+<style>{CSS}</style>{METRIKA}
 </head>
 <body>
 <h1>{e(SITE_TITLE)}</h1>
@@ -308,7 +371,8 @@ BOOKS = page("books.html", "Все книги — " + SITE_TITLE,
 THANKS = f"""<!DOCTYPE html>
 <html lang="ru">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Сообщение отправлено</title><style>{CSS}</style></head>
+<meta name="robots" content="noindex, follow">
+<title>Сообщение отправлено</title><style>{CSS}</style>{METRIKA}</head>
 <body>
 <h1>Сообщение отправлено</h1>
 <p>Джазака-Ллаху хайран. Книгу подготовлю и выложу на сайт, ошибку поправлю
@@ -344,12 +408,36 @@ CATALOG = f"""<?xml version="1.0" encoding="utf-8"?>
 </feed>
 """
 
+# --- robots.txt и sitemap.xml ----------------------------------------------
+last = max(b["date"] for b in books)
+ROBOTS = f"""# robots.txt for {DOMAIN or 'ar-books-for-reading'}
+User-agent: *
+Allow: /
+
+Sitemap: {SITE_URL.rstrip('/')}/sitemap.xml
+
+Crawl-delay: 1
+"""
+
+SITEMAP = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+           + "".join(
+               "  <url>\n    <loc>%s</loc>\n    <lastmod>%s</lastmod>\n"
+               "    <changefreq>monthly</changefreq>\n    <priority>%s</priority>\n  </url>\n"
+               % (page_url(f), last, "1.0" if f == "index.html" else "0.8")
+               for f, _ in PAGES)
+           + "</urlset>\n")
+
 write = lambda n, s: open(os.path.join(OUT_DIR, n), "w", encoding="utf-8").write(s)
 write("index.html", INDEX)
 write("authors.html", AUTHORS)
 write("books.html", BOOKS)
 write("thanks.html", THANKS)
 write("catalog.xml", CATALOG)
+write("robots.txt", ROBOTS)
+write("sitemap.xml", SITEMAP)
+if INDEXNOW_KEY:
+    write(INDEXNOW_KEY + ".txt", INDEXNOW_KEY)
 open(os.path.join(OUT_DIR, ".nojekyll"), "w").write("")   # GitHub Pages: serve files as-is
 cname = os.path.join(OUT_DIR, "CNAME")
 if DOMAIN:

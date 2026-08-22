@@ -1,0 +1,7 @@
+# robots.txt for translatearabic.org
+User-agent: *
+Allow: /
+
+Sitemap: https://translatearabic.org/sitemap.xml
+
+Crawl-delay: 1
