@@ -48,11 +48,28 @@ python tools/make_epub.py "том1.htm" "том2.htm" "книга.epub"
 ## Что где
 
 ```
-tools/make_epub.py   Shamela HTML → EPUB
-tools/make_site.py   EPUB → статический сайт (docs/)
-tools/fonts/         Amiri, встраивается в каждую книгу
-slugs.txt            арабское имя файла → латинское имя в URL
-docs/                готовый сайт: index.html, catalog.xml (OPDS), books/
+tools/make_epub.py          Shamela HTML → EPUB
+tools/make_site.py          EPUB + каталог «Шамили» → статический сайт (docs/)
+tools/dump_shamela.py       master.db «Шамили» → shamela_catalog.json
+tools/shamela_catalog.json  полный каталог: 40 разделов, ~8600 книг (коммитится)
+tools/fonts/                Amiri, встраивается в каждую книгу
+slugs.txt                   арабское имя файла → латинское имя в URL
+docs/                       готовый сайт: index (разделы), cat/ (все книги раздела),
+                            book/ (карточки готовых), request.html (заявка),
+                            catalog.xml (OPDS), books/ (EPUB-файлы)
+```
+
+Главная — все 40 разделов «Шамили». Внутри раздела перечислены все его книги:
+готовые (жирным, со значком «есть EPUB») ведут на карточку со скачиванием,
+остальные — на форму заявки с уже подставленным названием. Готовый EPUB находит
+свою строчку в каталоге по совпадению названия; если не нашёл — `make_site.py`
+напишет об этом в консоль (`!! не нашёл в каталоге`).
+
+После обновления «Шамили» каталог освежается так:
+
+```sh
+python tools/dump_shamela.py   # прочитает D:\shamela4\database\master.db
+python tools/make_site.py
 ```
 
 ## Права

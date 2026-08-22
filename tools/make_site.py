@@ -2,12 +2,15 @@
 """Build a static download site from the finished EPUBs.
 
 Scans a folder for *.epub, reads each book's metadata out of its OPF, and
-writes three plain no-JavaScript pages plus an OPDS catalog into docs/:
-  index.html    — дерево по наукам (как разделы «Шамили»)
-  authors.html  — по авторам, от ранних к поздним
-  books.html    — сплошной список, от старых книг к новым
-The pages have to open in an e-reader's own browser, so: no scripts, no web
-fonts, no images, high contrast, big tap targets.
+writes plain no-JavaScript pages plus an OPDS catalog into docs/:
+  index.html    — разделы «Шамили» (полный каталог, 40 наук)
+  cat/*.html    — все книги раздела; готовые ведут на карточку, остальные на заявку
+  book/*.html   — карточка готовой книги со ссылками на скачивание
+  authors.html  — готовые книги по авторам, от ранних к поздним
+  books.html    — готовые книги сплошным списком
+  request.html  — форма заявки (название подставляется из ?book=)
+The pages have to open in an e-reader's own browser, so: no required scripts,
+no web fonts, no images, high contrast, big tap targets.
 
 usage: python make_site.py [book-dir] [out-dir]
 """
@@ -45,36 +48,41 @@ METRIKA_ID = "111856853"
 INDEXNOW_KEY = "8b2df7cedc824992a4e745d083c116e0"
 # Описания страниц для поисковиков; ключи — имена файлов из PAGES.
 DESCRIPTIONS = {
-    "index.html": ("Классические арабские тексты из «аль-Мактаба аш-Шамиля» в EPUB "
-                   "для электронных читалок: с оглавлением, без сносок мухаккика, "
-                   "со встроенным шрифтом. Скачать бесплатно."),
-    "authors.html": ("Арабские книги по авторам, от ранних к поздним по году смерти — "
-                     "скачать в EPUB для электронной читалки."),
-    "books.html": ("Все арабские книги библиотеки одним списком, от старых к новым — "
+    "index.html": ("Каталог «аль-Мактаба аш-Шамиля» по разделам: классические "
+                   "арабские книги в EPUB для электронных читалок — с оглавлением, "
+                   "без сносок мухаккика. Готовые скачиваются бесплатно, "
+                   "любую другую можно заказать."),
+    "authors.html": ("Готовые арабские книги по авторам, от ранних к поздним по "
+                     "году смерти — скачать в EPUB для электронной читалки."),
+    "books.html": ("Все готовые арабские книги одним списком, от старых к новым — "
                    "скачать бесплатно в EPUB."),
 }
 
-# Порядок разделов как в «Шамиле»: сначала эти, остальные — по алфавиту следом.
-CATEGORY_ORDER = [
-    "العقيدة", "التفسير وعلومه", "علوم القرآن", "التجويد والقراءات",
-    "الحديث وعلومه", "مصطلح الحديث", "الفقه", "أصول الفقه", "الفتاوى",
-    "السيرة والتاريخ", "التراجم والطبقات", "الرقائق والآداب والأذكار",
-    "اللغة", "النحو والصرف", "الأدب", "الفهارس والأدلة",
-]
+# Каталог «Шамили»: выгружается из master.db скриптом dump_shamela.py и
+# коммитится, чтобы сайт собирался без установленной «Шамили».
+CATALOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "shamela_catalog.json")
 
 AR2LAT = dict(zip("ابتثجحخدذرزسشصضطظعغفقكلمنهويةىأإآئؤء",
                   ["a","b","t","th","j","h","kh","d","dh","r","z","s","sh","s","d",
                    "t","z","a","gh","f","q","k","l","m","n","h","w","y","a","a",
                    "a","i","a","y","w",""]))
-DIAC = re.compile(r"[ؐ-ًؚ-ٰٟۖ-ۭـ]")
+# Огласовки и комбинируемые знаки (буквы U+0621-U+064A не трогаем):
+# хонорифики 0610-061A, ташкиль 064B-065F, dagger-алиф 0670,
+# татвиль 0640, коранические знаки 06D6-06ED.
+DIAC = re.compile("[ؐ-ًؚ-ٰٟـۖ-ۭ]")
+
+
+def translit(name):
+    """ASCII из арабского: старые браузеры читалок давятся percent-encoding."""
+    stem = DIAC.sub("", name)
+    out = "".join(AR2LAT.get(ch, ch if ch.isascii() and (ch.isalnum() or ch in "-_") else " ")
+                  for ch in stem)
+    return re.sub(r"\s+", "-", out.strip()).strip("-").lower()
 
 
 def slug(name):
-    """ASCII file name: old e-reader browsers choke on percent-encoded Arabic."""
-    stem = DIAC.sub("", os.path.splitext(name)[0])
-    out = "".join(AR2LAT.get(ch, ch if ch.isascii() and (ch.isalnum() or ch in "-_") else " ")
-                  for ch in stem)
-    return (re.sub(r"\s+", "-", out.strip()).strip("-").lower() or "book") + ".epub"
+    return (translit(os.path.splitext(name)[0]) or "book") + ".epub"
 
 
 def meta(path):
@@ -158,6 +166,7 @@ for u in units:
     u["chapters"] = sum(b["chapters"] for b in u["vols"])
     u["size"] = sum(b["size"] for b in u["vols"])
     u["date"] = max(b["date"] for b in u["vols"])
+    u["page"] = "book/%s.html" % os.path.splitext(u["vols"][0]["file"])[0]
 
 # Один автор в разных изданиях записан по-разному («… الدارمي» и
 # «… الدارمي السجستاني»): считаем их одним, если совпал год смерти и есть
@@ -176,11 +185,53 @@ for u in sorted(units, key=lambda u: (u["year"] is None, u["year"] or 0)):
         if len(u["author_name"]) < len(hit["name"]):
             hit["name"] = u["author_name"]      # короткая форма читается легче
 
+# --- каталог «Шамили»: разделы и все книги ----------------------------------
+CATALOG = {"categories": [], "books": []}
+if os.path.exists(CATALOG_FILE):
+    CATALOG = json.load(open(CATALOG_FILE, encoding="utf-8"))
+cat_by_id, cat_by_name = {}, {}
+for c in CATALOG["categories"]:
+    c["slug"] = translit(c["name"]) or "cat-%d" % c["id"]
+    if c["slug"] in {x["slug"] for x in cat_by_id.values()}:
+        c["slug"] += "-%d" % c["id"]
+    c["books"] = []
+    cat_by_id[c["id"]] = c
+    cat_by_name[c["name"]] = c
+for sb in CATALOG["books"]:
+    c = cat_by_id.get(sb["c"])
+    if c is not None:
+        c["books"].append(sb)
+
+NORM_TR = str.maketrans("أإآٱى", "ااااي")
+def norm_title(s):
+    s = DIAC.sub("", s or "").translate(NORM_TR)
+    s = re.sub(r"[^\w\s]", " ", s, flags=re.U)
+    return re.sub(r"\s+", " ", s).strip()
+
+# Готовые книги находят свою строчку в каталоге: сперва точное совпадение
+# нормализованного названия, затем — вхождение (издания дописывают «ت فلان»).
+by_norm = {}
+for sb in CATALOG["books"]:
+    by_norm.setdefault(norm_title(sb["n"]), sb)
+for u in units:
+    t = norm_title(u["title"])
+    hit = by_norm.get(t)
+    if hit is None and t:
+        best = None
+        for sb in CATALOG["books"]:
+            n = norm_title(sb["n"])
+            if t in n or n in t:
+                if best is None or abs(len(n) - len(t)) < abs(len(norm_title(best["n"])) - len(t)):
+                    best = sb
+        hit = best
+    if hit is not None:
+        hit["unit"] = u
+    else:
+        print("!! не нашёл в каталоге «Шамили»:", u["title"])
+
 cats = {}
 for b in units:
     cats.setdefault(b["category"], []).append(b)
-cat_names = sorted(cats, key=lambda c: (CATEGORY_ORDER.index(c) if c in CATEGORY_ORDER
-                                        else len(CATEGORY_ORDER), c))
 
 # --- вёрстка ----------------------------------------------------------------
 e = lambda s: html.escape(s or "", quote=True)
@@ -191,6 +242,7 @@ CSS = """
 body { background:#fff; color:#000; font-family:Georgia,serif; font-size:18px;
        line-height:1.5; margin:0 auto; padding:16px; max-width:44em; }
 h1 { font-size:24px; margin:0 0 8px 0; }
+h1 a { color:#000; text-decoration:none; }
 h2 { font-size:21px; margin:26px 0 10px 0; border-bottom:2px solid #000; padding-bottom:4px; }
 h2 .ru { font-size:15px; font-weight:normal; display:block; }
 p.note { margin:0 0 16px 0; }
@@ -206,6 +258,11 @@ a.dl { display:block; text-align:center; border:2px solid #000; padding:10px;
        text-decoration:none; color:#000; font-weight:bold; }
 .vols a { display:inline-block; min-width:3.4em; text-align:center; border:2px solid #000;
        padding:8px 6px; margin:0 6px 6px 0; text-decoration:none; color:#000; font-weight:bold; }
+ul.cat li { padding:9px 0; border-bottom:1px solid #999; }
+ul.cat a { color:#000; }
+ul.cat .who { font-size:15px; display:block; }
+ul.cat .have { font-weight:bold; }
+.badge { font-size:14px; border:1px solid #000; padding:1px 6px; white-space:nowrap; }
 form { border:1px solid #000; padding:12px; }
 label { display:block; margin:0 0 12px 0; }
 label span { display:block; margin-bottom:4px; }
@@ -218,36 +275,7 @@ footer { margin-top:24px; font-size:15px; border-top:1px solid #000; padding-top
 code { font-family:monospace; font-size:15px; }
 """
 
-PAGES = [("index.html", "По наукам"), ("authors.html", "По авторам"), ("books.html", "Все книги")]
-
-
-def nav(cur):
-    parts = [(f"<b>{t}</b>" if f == cur else f'<a href="{f}">{t}</a>') for f, t in PAGES]
-    return "<nav>" + " &nbsp;·&nbsp; ".join(parts) + "</nav>"
-
-
-def book_li(u, show_author=True):
-    bits = []
-    if show_author:
-        bits.append(f'<div class="a" dir="rtl" lang="ar">{e(u["author_name"])}</div>')
-    meta_line = [f'{u["chapters"]} глав', mb(u["size"])]
-    if len(u["vols"]) > 1:
-        meta_line.insert(0, "%d томов" % len(u["vols"]))
-    if u["editor"]:
-        meta_line.insert(0, "тахкык: " + u["editor"])
-    if len(u["vols"]) == 1:
-        dl = f'<a class="dl" href="books/{quote(u["vols"][0]["file"])}">Скачать EPUB</a>'
-    else:
-        links = "".join(
-            f'<a href="books/{quote(v["file"])}">т.&nbsp;{v["volume"] or i + 1}</a>'
-            for i, v in enumerate(u["vols"]))
-        dl = f'<div class="vols">{links}</div>'
-    return f"""<li class="book">
-<div class="t" dir="rtl" lang="ar">{e(u["title"])}</div>
-{''.join(bits)}
-<div class="m" dir="rtl" lang="ar">{e(' · '.join(meta_line))}</div>
-{dl}
-</li>"""
+PAGES = [("index.html", "Разделы"), ("authors.html", "По авторам"), ("books.html", "Готовые книги")]
 
 
 def page_url(fname):
@@ -255,9 +283,11 @@ def page_url(fname):
     return base + "/" if fname == "index.html" else "%s/%s" % (base, fname)
 
 
-def seo_head(fname, title):
+def seo_head(fname, title, desc, noindex=False):
     """Тот же набор, что на dxfviewer.app и pdfviewer.work — и не больше."""
-    url, desc = page_url(fname), DESCRIPTIONS.get(fname, "")
+    if noindex:
+        return '<meta name="robots" content="noindex, follow">'
+    url = page_url(fname)
     lines = [
         f'<meta name="description" content="{e(desc)}">',
         '<meta name="robots" content="index, follow, max-image-preview:large, '
@@ -295,41 +325,74 @@ ym(%(id)s,'init',{ssr:true,webvisor:true,clickmap:true,ecommerce:"dataLayer",ref
 """ % {"id": METRIKA_ID} if METRIKA_ID else ""
 
 
-def page(fname, title, body):
-    cur_title = next(t for f, t in PAGES if f == fname)
+def nav(cur):
+    parts = [(f"<b>{t}</b>" if f == cur else f'<a href="/{f if f != "index.html" else ""}">{t}</a>')
+             for f, t in PAGES]
+    return "<nav>" + " &nbsp;·&nbsp; ".join(parts) + "</nav>"
+
+
+def request_url(name):
+    return "/request.html?book=" + quote(name)
+
+
+def book_li(u, show_author=True):
+    bits = []
+    if show_author:
+        bits.append(f'<div class="a" dir="rtl" lang="ar">{e(u["author_name"])}</div>')
+    meta_line = [f'{u["chapters"]} глав', mb(u["size"])]
+    if len(u["vols"]) > 1:
+        meta_line.insert(0, "%d томов" % len(u["vols"]))
+    if u["editor"]:
+        meta_line.insert(0, "тахкык: " + u["editor"])
+    if len(u["vols"]) == 1:
+        dl = f'<a class="dl" href="/books/{quote(u["vols"][0]["file"])}">Скачать EPUB</a>'
+    else:
+        links = "".join(
+            f'<a href="/books/{quote(v["file"])}">т.&nbsp;{v["volume"] or i + 1}</a>'
+            for i, v in enumerate(u["vols"]))
+        dl = f'<div class="vols">{links}</div>'
+    return f"""<li class="book">
+<div class="t" dir="rtl" lang="ar"><a href="/{u["page"]}">{e(u["title"])}</a></div>
+{''.join(bits)}
+<div class="m" dir="rtl" lang="ar">{e(' · '.join(meta_line))}</div>
+{dl}
+</li>"""
+
+
+def page(fname, title, body, desc="", cur=None, footer_note="", noindex=False):
     return f"""<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{e(title)}</title>
-{seo_head(fname, title)}
+{seo_head(fname, title, desc, noindex)}
 <style>{CSS}</style>{METRIKA}
 </head>
 <body>
-<h1>{e(SITE_TITLE)}</h1>
-{nav(fname)}
+<h1><a href="/">{e(SITE_TITLE)}</a></h1>
+{nav(cur or fname)}
 {body}
-<footer>Книг в библиотеке: {len(units)}, файлов: {len(books)}. Раздел «{e(cur_title)}».<br>
+<footer>Готовых книг: {len(units)}, файлов: {len(books)}; в каталоге «Шамили»: {len(CATALOG["books"])}.{footer_note}<br>
 Для KOReader есть OPDS-каталог: адрес сайта с <code>/catalog.xml</code> на конце —
-книги будут видны прямо в читалке.</footer>
+готовые книги будут видны прямо в читалке.</footer>
 </body>
 </html>
 """
 
-# --- index.html: дерево по наукам -------------------------------------------
-tree = []
-for c in cat_names:
-    items = sorted(cats[c], key=lambda b: (b["year"] is None, b["year"] or 0, b["title"]))
-    tree.append(f'<h2 dir="rtl" lang="ar">{e(c)}<span class="ru">книг: {len(items)}</span></h2>')
-    tree.append("<ul>" + "".join(book_li(b) for b in items) + "</ul>")
+# --- index.html: разделы «Шамили» -------------------------------------------
+rows = []
+for c in CATALOG["categories"]:
+    ready = sum(1 for sb in c["books"] if sb.get("unit"))
+    who = "книг: %d" % len(c["books"]) + (", готово: %d" % ready if ready else "")
+    rows.append(f'<li><a href="/cat/{c["slug"]}.html" dir="rtl" lang="ar"'
+                f'{" class=have" if ready else ""}>{e(c["name"])}</a>'
+                f'<span class="who">{who}</span></li>')
+CATS_HTML = ('<h2>Разделы<span class="ru">полный каталог «аль-Мактаба аш-Шамиля»; '
+             'готовые книги скачиваются, любую другую можно заказать</span></h2>'
+             '<ul class="cat">' + "".join(rows) + "</ul>") if rows else ""
 
-FORM = f"""
-<h2>Написать мне<span class="ru">заявка на книгу или сообщение об ошибке</span></h2>
-<p>Нужной книги здесь нет? Или нашли ошибку в тексте? Напишите мне — подготовлю
-книгу, а ошибку поправлю и перезалью.</p>
-<form action="{e(REQUEST_ENDPOINT)}" method="POST" accept-charset="utf-8">
-<label><span>Книга — какую подготовить или в какой ошибка <b>*</b></span>
+FORM_FIELDS = f"""<label><span>Книга — какую подготовить или в какой ошибка <b>*</b></span>
 <input type="text" name="Книга" required></label>
 <label><span>Автор или издание, если знаете (например: ت البدر)</span>
 <input type="text" name="Издание"></label>
@@ -344,12 +407,65 @@ FORM = f"""
 <input type="hidden" name="_captcha" value="false">
 <input type="hidden" name="_template" value="table">
 {f'<input type="hidden" name="_next" value="{e(SITE_URL.rstrip("/"))}/thanks.html">' if SITE_URL else ''}
-<input type="submit" value="Отправить">
+<input type="submit" value="Отправить">"""
+
+FORM = f"""
+<h2>Написать мне<span class="ru">заявка на книгу или сообщение об ошибке</span></h2>
+<p>Нужной книги здесь нет? Или нашли ошибку в тексте? Напишите мне — подготовлю
+книгу, а ошибку поправлю и перезалью.</p>
+<form action="{e(REQUEST_ENDPOINT)}" method="POST" accept-charset="utf-8">
+{FORM_FIELDS}
 </form>
 """
 
 INDEX = page("index.html", SITE_TITLE,
-             f'<p class="note">{e(SITE_NOTE)}</p>' + "\n".join(tree) + FORM)
+             f'<p class="note">{e(SITE_NOTE)}</p>' + CATS_HTML + FORM)
+
+# --- cat/*.html: все книги раздела ------------------------------------------
+CAT_PAGES = []
+for c in CATALOG["categories"]:
+    items = []
+    for sb in c["books"]:
+        who = e(sb["a"]) if sb["a"] else ""
+        year = (" · " + hijri(sb["d"])) if sb["d"] else ""
+        u = sb.get("unit")
+        if u:
+            items.append(f'<li><a class="have" href="/{u["page"]}" dir="rtl" lang="ar">{e(sb["n"])}</a> '
+                         f'<span class="badge">есть EPUB</span>'
+                         f'<span class="who" dir="rtl" lang="ar">{who}{year}</span></li>')
+        else:
+            items.append(f'<li><a href="{e(request_url(sb["n"]))}" dir="rtl" lang="ar">{e(sb["n"])}</a>'
+                         f'<span class="who" dir="rtl" lang="ar">{who}{year}</span></li>')
+    ready = sum(1 for sb in c["books"] if sb.get("unit"))
+    fname = "cat/%s.html" % c["slug"]
+    title = "%s — %s" % (c["name"], SITE_TITLE)
+    desc = ("«%s» — все книги раздела из каталога «аль-Мактаба аш-Шамиля» (%d). "
+            "Готовые в EPUB отмечены, любую другую можно заказать бесплатно."
+            % (c["name"], len(c["books"])))
+    body = (f'<h2 dir="rtl" lang="ar">{e(c["name"])}<span class="ru">книг: {len(c["books"])}'
+            + (f", готово в EPUB: {ready}" if ready else "")
+            + '</span></h2>'
+            '<p class="note">Жирным со значком «есть EPUB» — готовые книги: нажмите, '
+            'чтобы открыть карточку и скачать. Остальные названия ведут на форму '
+            'заявки — нажмите и отправьте, я подготовлю книгу.</p>'
+            '<ul class="cat">' + "".join(items) + "</ul>")
+    CAT_PAGES.append((fname, page(fname, title, body, desc)))
+
+# --- book/*.html: карточки готовых книг -------------------------------------
+BOOK_PAGES = []
+for u in units:
+    fname = u["page"]
+    title = "%s — %s" % (u["title"], SITE_TITLE)
+    desc = ("«%s» — %s. Скачать бесплатно в EPUB для электронной читалки: "
+            "с оглавлением, без сносок, шрифт Amiri." % (u["title"], u["author_name"]))
+    c = cat_by_name.get(u["category"])
+    back = (f'<p class="note"><a href="/cat/{c["slug"]}.html">&larr; Раздел '
+            f'<span dir="rtl" lang="ar">{e(c["name"])}</span></a></p>') if c else ""
+    body = (f'<h2 dir="rtl" lang="ar">{e(u["title"])}<span class="ru">{hijri(u["year"])}</span></h2>'
+            + "<ul>" + book_li(u) + "</ul>" + back
+            + f'<p class="note">Нашли ошибку в тексте? '
+              f'<a href="{e(request_url(u["title"]))}">Напишите мне</a> — поправлю и перезалью.</p>')
+    BOOK_PAGES.append((fname, page(fname, title, body, desc)))
 
 # --- authors.html -----------------------------------------------------------
 blocks = []
@@ -359,14 +475,31 @@ for a in authors:
                   f'<span class="ru">{hijri(a["year"])} · книг: {len(items)}</span></h2>')
     blocks.append("<ul>" + "".join(book_li(b, show_author=False) for b in items) + "</ul>")
 AUTHORS = page("authors.html", "По авторам — " + SITE_TITLE,
-               '<p class="note">Авторы идут от ранних к поздним, по году смерти.</p>'
+               '<p class="note">Готовые книги; авторы идут от ранних к поздним, по году смерти.</p>'
                + "\n".join(blocks))
 
 # --- books.html -------------------------------------------------------------
 flat = sorted(units, key=lambda b: (b["year"] is None, b["year"] or 0, b["title"]))
-BOOKS = page("books.html", "Все книги — " + SITE_TITLE,
+BOOKS = page("books.html", "Готовые книги — " + SITE_TITLE,
              '<p class="note">От старых к новым: порядок по году смерти автора.</p>'
              + "<ul>" + "".join(book_li(b) for b in flat) + "</ul>")
+
+# --- request.html: заявка с подставленным названием -------------------------
+# Название книги приезжает в ?book=…; крошечный скрипт подставляет его в поле.
+# На читалке без JS поле просто останется пустым — впишут руками.
+REQUEST_JS = """
+<script>
+try{var m=location.search.match(/[?&]book=([^&]*)/);
+if(m){document.getElementsByName("\\u041a\\u043d\\u0438\\u0433\\u0430")[0].value=
+decodeURIComponent(m[1].replace(/\\+/g," "));}}catch(e){}
+</script>"""
+REQUEST = page("request.html", "Заказать книгу — " + SITE_TITLE,
+               '<h2>Заказать книгу<span class="ru">подготовлю EPUB и выложу на сайт</span></h2>'
+               '<p>Отправьте заявку — когда книга будет готова, она появится в своём '
+               'разделе. Если оставите контакт, напишу вам.</p>'
+               f'<form action="{e(REQUEST_ENDPOINT)}" method="POST" accept-charset="utf-8">'
+               + FORM_FIELDS + "</form>" + REQUEST_JS,
+               noindex=True)
 
 THANKS = f"""<!DOCTYPE html>
 <html lang="ru">
@@ -377,7 +510,7 @@ THANKS = f"""<!DOCTYPE html>
 <h1>Сообщение отправлено</h1>
 <p>Джазака-Ллаху хайран. Книгу подготовлю и выложу на сайт, ошибку поправлю
 и перезалью — загляните позже.</p>
-<p><a href="index.html">&larr; К списку книг</a></p>
+<p><a href="/">&larr; К списку книг</a></p>
 </body>
 </html>
 """
@@ -397,7 +530,7 @@ for b in sorted(books, key=lambda b: (b["year"] is None, b["year"] or 0,
           href="books/{quote(b['file'])}" length="{b['size']}"/>
   </entry>""")
 
-CATALOG = f"""<?xml version="1.0" encoding="utf-8"?>
+OPDS = f"""<?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" xmlns:opds="http://opds-spec.org/2010/catalog">
   <id>urn:ar-books-for-reading</id>
   <title>{e(SITE_TITLE)}</title>
@@ -419,23 +552,36 @@ Sitemap: {SITE_URL.rstrip('/')}/sitemap.xml
 Crawl-delay: 1
 """
 
+sm_urls = ([(f, "1.0" if f == "index.html" else "0.8") for f, _ in PAGES]
+           + [(f, "0.6") for f, _ in CAT_PAGES]
+           + [(f, "0.7") for f, _ in BOOK_PAGES])
 SITEMAP = ('<?xml version="1.0" encoding="UTF-8"?>\n'
            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
            + "".join(
                "  <url>\n    <loc>%s</loc>\n    <lastmod>%s</lastmod>\n"
                "    <changefreq>monthly</changefreq>\n    <priority>%s</priority>\n  </url>\n"
-               % (page_url(f), last, "1.0" if f == "index.html" else "0.8")
-               for f, _ in PAGES)
+               % (page_url(f), last, pr) for f, pr in sm_urls)
            + "</urlset>\n")
 
-write = lambda n, s: open(os.path.join(OUT_DIR, n), "w", encoding="utf-8").write(s)
+def write(n, s):
+    p = os.path.join(OUT_DIR, n)
+    os.makedirs(os.path.dirname(p) or OUT_DIR, exist_ok=True)
+    open(p, "w", encoding="utf-8").write(s)
+
+for d in ("cat", "book"):
+    p = os.path.join(OUT_DIR, d)
+    if os.path.isdir(p):
+        shutil.rmtree(p)
 write("index.html", INDEX)
 write("authors.html", AUTHORS)
 write("books.html", BOOKS)
 write("thanks.html", THANKS)
-write("catalog.xml", CATALOG)
+write("request.html", REQUEST)
+write("catalog.xml", OPDS)
 write("robots.txt", ROBOTS)
 write("sitemap.xml", SITEMAP)
+for fname, html_text in CAT_PAGES + BOOK_PAGES:
+    write(fname, html_text)
 if INDEXNOW_KEY:
     write(INDEXNOW_KEY + ".txt", INDEXNOW_KEY)
 open(os.path.join(OUT_DIR, ".nojekyll"), "w").write("")   # GitHub Pages: serve files as-is
@@ -446,12 +592,6 @@ elif os.path.exists(cname):
     os.remove(cname)
 
 print("site:", OUT_DIR)
-for c in cat_names:
-    print("  [%s] %d кн." % (c, len(cats[c])))
-for a in authors:
-    print("  - %s (%s): %s" % (a["name"], hijri(a["year"]),
-                               ", ".join("%s%s" % (u["title"][:40],
-                                                   " [%d т.]" % len(u["vols"]) if len(u["vols"]) > 1 else "")
-                                         for u in a["units"])))
-print("%d книг (%d файлов), %d разделов, %d авторов"
-      % (len(units), len(books), len(cat_names), len(authors)))
+print("%d книг (%d файлов), %d разделов «Шамили» (%d кн. в каталоге), %d авторов"
+      % (len(units), len(books), len(CATALOG["categories"]), len(CATALOG["books"]),
+         len(authors)))
