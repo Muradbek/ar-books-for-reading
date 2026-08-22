@@ -26,9 +26,10 @@ authors = [{"id": i, "n": name, "d": death if death and death < 9000 else None}
                "SELECT author_id, author_name, death_number FROM author "
                "WHERE author_id IN (SELECT main_author FROM book WHERE hidden = 0)")]
 
-books = [{"n": name, "c": cat, "au": au}
-         for name, cat, au in cur.execute(
-             "SELECT b.book_name, b.book_category, b.main_author "
+books = [{"n": name, "c": cat, "au": au,
+          "y": date if date and date < 9000 else None}
+         for name, cat, au, date in cur.execute(
+             "SELECT b.book_name, b.book_category, b.main_author, b.book_date "
              "FROM book b LEFT JOIN author a ON a.author_id = b.main_author "
              "WHERE b.hidden = 0 ORDER BY b.book_category, "
              "CASE WHEN a.death_number IS NULL OR a.death_number >= 9000 THEN 1 ELSE 0 END, "

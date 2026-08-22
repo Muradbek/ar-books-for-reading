@@ -55,9 +55,9 @@ DESCRIPTIONS = {
     "authors.html": ("Все авторы каталога «аль-Мактаба аш-Шамиля» одним списком, "
                      "от ранних к поздним по году смерти — книги каждого автора, "
                      "готовые в EPUB отмечены."),
-    "books.html": ("Все книги каталога «аль-Мактаба аш-Шамиля» одним списком по "
-                   "алфавиту, от первой до последней — готовые в EPUB отмечены, "
-                   "любую другую можно заказать."),
+    "books.html": ("Все книги каталога «аль-Мактаба аш-Шамиля» одним списком, "
+                   "от первой до последней по времени написания — готовые в EPUB "
+                   "отмечены, любую другую можно заказать."),
     "ready.html": ("Готовые арабские книги в EPUB, от старых к новым — скачать "
                    "бесплатно для электронной читалки."),
 }
@@ -491,39 +491,6 @@ for u in units:
               f'<a href="{e(request_url(u["title"]))}">Напишите мне</a> — поправлю и перезалью.</p>')
     BOOK_PAGES.append((fname, page(fname, title, body, desc)))
 
-# --- алфавит: буква без артикля «ال» -----------------------------------------
-LETTERS = "ابتثجحخدذرزسشصضطظعغفقكلمنهوي"
-
-def letter_of(name):
-    n = norm_title(name)
-    if n.startswith("ال") and len(n) > 3:
-        n = n[2:]
-    return n[:1] if n[:1] in LETTERS else ""
-
-
-def alpha_index(groups):
-    """Строка-оглавление: буквы-якоря в начале длинного списка."""
-    parts = [f'<a href="#h-{i}">{ch}</a>'
-             for i, ch in enumerate(LETTERS) if groups.get(ch)]
-    if groups.get(""):
-        parts.append('<a href="#h-x">&hellip;</a>')
-    return '<p class="note" dir="rtl" lang="ar">' + " &nbsp;".join(parts) + "</p>"
-
-
-def letter_blocks(groups, row):
-    out = []
-    for i, ch in enumerate(LETTERS):
-        lst = groups.get(ch)
-        if not lst:
-            continue
-        out.append(f'<h2 id="h-{i}" dir="rtl" lang="ar">{ch}</h2>'
-                   '<ul class="cat">' + "".join(row(x) for x in lst) + "</ul>")
-    if groups.get(""):
-        out.append('<h2 id="h-x">Прочее</h2><ul class="cat">'
-                   + "".join(row(x) for x in groups[""]) + "</ul>")
-    return "".join(out)
-
-
 # --- authors.html + author/*.html --------------------------------------------
 # Все авторы «Шамили» одним списком, от первого до современника: порядок по
 # году смерти, заголовки по векам хиджры, сверху якоря-века. Книги автора
@@ -545,7 +512,7 @@ def vek(d):
     return (d - 1) // 100 + 1 if d else 0
 
 vek_name = lambda v: ("%d-й век хиджры (%d–%d г.)" % (v, (v - 1) * 100 + 1, v * 100)
-                      if v else "Год смерти неизвестен")
+                      if v else "Год неизвестен")
 
 au_groups = {}
 for a in sorted(au_by_id.values(),
@@ -584,15 +551,31 @@ for a in au_by_id.values():
     AUTHOR_PAGES.append((fname, page(fname, title, body, cur="authors.html",
                                      noindex=True)))
 
-# --- books.html: все книги одним списком -------------------------------------
+# --- books.html: все книги от первой до последней ----------------------------
+# Хронология: год книги из «Шамили» (почти всегда это год смерти автора,
+# у ~90 книг проставлена своя дата), иначе год смерти автора; без даты — в конец.
+def book_year(sb):
+    return sb.get("y") or sb.get("d")
+
 bk_groups = {}
-for sb in sorted(CATALOG["books"], key=lambda sb: norm_title(sb["n"])):
-    bk_groups.setdefault(letter_of(sb["n"]), []).append(sb)
+for sb in sorted(CATALOG["books"],
+                 key=lambda sb: (book_year(sb) is None, book_year(sb) or 0,
+                                 norm_title(sb["n"]))):
+    bk_groups.setdefault(vek(book_year(sb)), []).append(sb)
+
+bk_keys = sorted(bk_groups, key=lambda v: (v == 0, v))
+bk_anchor = ('<p class="note">'
+             + " &nbsp;".join(f'<a href="#v-{v}">{"век %d" % v if v else "?"}</a>'
+                              for v in bk_keys) + "</p>")
+bk_body = "".join(
+    f'<h2 id="v-{v}">{e(vek_name(v))}<span class="ru">книг: {len(bk_groups[v])}</span></h2>'
+    '<ul class="cat">' + "".join(sb_li(sb) for sb in bk_groups[v]) + "</ul>"
+    for v in bk_keys)
 
 BOOKS = page("books.html", "Книги — " + SITE_TITLE,
              '<h2>Все книги<span class="ru">весь каталог «аль-Мактаба аш-Шамиля» '
-             'от первой книги до последней, по алфавиту без артикля «ال»</span></h2>'
-             + alpha_index(bk_groups) + letter_blocks(bk_groups, sb_li))
+             'от первой книги до последней, по времени написания</span></h2>'
+             + bk_anchor + bk_body)
 
 # --- ready.html: готовые книги карточками ------------------------------------
 flat = sorted(units, key=lambda b: (b["year"] is None, b["year"] or 0, b["title"]))
