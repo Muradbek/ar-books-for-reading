@@ -32,10 +32,10 @@ SITE_NOTE = ("Классические тексты из «аль-Мактаба
 # почта не будет видна в исходнике страницы.
 REQUEST_ENDPOINT = "https://formsubmit.co/ibrmur89@gmail.com"
 # Полный адрес сайта — нужен, чтобы после отправки вернуть на свою страницу.
-SITE_URL = "https://muradbek.github.io/ar-books-for-reading"
+SITE_URL = "https://translatearabic.org"
 # Свой домен: впиши сюда — рядом с сайтом ляжет файл CNAME, который нужен
 # GitHub Pages. Пусто — сайт живёт на адресе github.io.
-DOMAIN = ""
+DOMAIN = "translatearabic.org"
 
 # Порядок разделов как в «Шамиле»: сначала эти, остальные — по алфавиту следом.
 CATEGORY_ORDER = [
