@@ -39,7 +39,7 @@ DOMAIN = "translatearabic.org"
 
 # --- SEO и счётчики ---------------------------------------------------------
 # Номер счётчика Яндекс Метрики (цифры). Пусто — счётчик не вставляется.
-METRIKA_ID = ""
+METRIKA_ID = "111856853"
 # Ключ IndexNow (Bing и Яндекс подтверждают им право слать URL на переобход):
 # кладётся в корень сайта файлом <ключ>.txt.
 INDEXNOW_KEY = "8b2df7cedc824992a4e745d083c116e0"
@@ -289,7 +289,7 @@ METRIKA = """
 m[i].l=1*new Date();for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r){return;}}
 k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
 (window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=%(id)s','ym');
-ym(%(id)s,'init',{clickmap:true,trackLinks:true,accurateTrackBounce:true,webvisor:true});
+ym(%(id)s,'init',{ssr:true,webvisor:true,clickmap:true,ecommerce:"dataLayer",referrer:document.referrer,url:location.href,accurateTrackBounce:true,trackLinks:true});
 </script>
 <noscript><div><img src="https://mc.yandex.ru/watch/%(id)s" style="position:absolute; left:-9999px;" alt=""/></div></noscript>
 """ % {"id": METRIKA_ID} if METRIKA_ID else ""
