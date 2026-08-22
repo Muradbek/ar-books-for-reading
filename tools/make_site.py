@@ -52,10 +52,13 @@ DESCRIPTIONS = {
                    "арабские книги в EPUB для электронных читалок — с оглавлением, "
                    "без сносок мухаккика. Готовые скачиваются бесплатно, "
                    "любую другую можно заказать."),
-    "authors.html": ("Готовые арабские книги по авторам, от ранних к поздним по "
-                     "году смерти — скачать в EPUB для электронной читалки."),
-    "books.html": ("Все готовые арабские книги одним списком, от старых к новым — "
-                   "скачать бесплатно в EPUB."),
+    "authors.html": ("Все авторы каталога «аль-Мактаба аш-Шамиля» по векам хиджры, "
+                     "от ранних к поздним — книги каждого автора, готовые в EPUB "
+                     "отмечены."),
+    "books.html": ("Все книги каталога «аль-Мактаба аш-Шамиля» по алфавиту — "
+                   "готовые в EPUB отмечены, любую другую можно заказать."),
+    "ready.html": ("Готовые арабские книги в EPUB, от старых к новым — скачать "
+                   "бесплатно для электронной читалки."),
 }
 
 # Каталог «Шамили»: выгружается из master.db скриптом dump_shamela.py и
@@ -197,7 +200,17 @@ for c in CATALOG["categories"]:
     c["books"] = []
     cat_by_id[c["id"]] = c
     cat_by_name[c["name"]] = c
+au_by_id = {}
+for a in CATALOG.get("authors", []):
+    a["slug"] = (translit(a["n"]) or "author") + "-%d" % a["id"]
+    a["books"] = []
+    au_by_id[a["id"]] = a
 for sb in CATALOG["books"]:
+    a = au_by_id.get(sb.get("au"))
+    sb["a"] = a["n"] if a else ""
+    sb["d"] = a["d"] if a else None
+    if a is not None:
+        a["books"].append(sb)
     c = cat_by_id.get(sb["c"])
     if c is not None:
         c["books"].append(sb)
@@ -275,7 +288,8 @@ footer { margin-top:24px; font-size:15px; border-top:1px solid #000; padding-top
 code { font-family:monospace; font-size:15px; }
 """
 
-PAGES = [("index.html", "Разделы"), ("authors.html", "По авторам"), ("books.html", "Готовые книги")]
+PAGES = [("index.html", "Разделы"), ("authors.html", "Авторы"),
+         ("books.html", "Все книги"), ("ready.html", "Готовые")]
 
 
 def page_url(fname):
@@ -333,6 +347,21 @@ def nav(cur):
 
 def request_url(name):
     return "/request.html?book=" + quote(name)
+
+
+def sb_li(sb, show_author=True):
+    """Строчка книги из каталога «Шамили»: готовая ведёт на карточку,
+    остальные — на форму заявки."""
+    who = e(sb["a"]) if (show_author and sb["a"]) else ""
+    year = (" · " + hijri(sb["d"])) if sb["d"] else ""
+    sub = (f'<span class="who" dir="rtl" lang="ar">{who}{year if who else year.lstrip(" ·")}</span>'
+           if who or sb["d"] else "")
+    u = sb.get("unit")
+    if u:
+        return (f'<li><a class="have" href="/{u["page"]}" dir="rtl" lang="ar">{e(sb["n"])}</a> '
+                f'<span class="badge">есть EPUB</span>{sub}</li>')
+    return (f'<li><a href="{e(request_url(sb["n"]))}" dir="rtl" lang="ar">{e(sb["n"])}</a>'
+            f'{sub}</li>')
 
 
 def book_li(u, show_author=True):
@@ -424,18 +453,7 @@ INDEX = page("index.html", SITE_TITLE,
 # --- cat/*.html: все книги раздела ------------------------------------------
 CAT_PAGES = []
 for c in CATALOG["categories"]:
-    items = []
-    for sb in c["books"]:
-        who = e(sb["a"]) if sb["a"] else ""
-        year = (" · " + hijri(sb["d"])) if sb["d"] else ""
-        u = sb.get("unit")
-        if u:
-            items.append(f'<li><a class="have" href="/{u["page"]}" dir="rtl" lang="ar">{e(sb["n"])}</a> '
-                         f'<span class="badge">есть EPUB</span>'
-                         f'<span class="who" dir="rtl" lang="ar">{who}{year}</span></li>')
-        else:
-            items.append(f'<li><a href="{e(request_url(sb["n"]))}" dir="rtl" lang="ar">{e(sb["n"])}</a>'
-                         f'<span class="who" dir="rtl" lang="ar">{who}{year}</span></li>')
+    items = [sb_li(sb) for sb in c["books"]]
     ready = sum(1 for sb in c["books"] if sb.get("unit"))
     fname = "cat/%s.html" % c["slug"]
     title = "%s — %s" % (c["name"], SITE_TITLE)
@@ -467,21 +485,120 @@ for u in units:
               f'<a href="{e(request_url(u["title"]))}">Напишите мне</a> — поправлю и перезалью.</p>')
     BOOK_PAGES.append((fname, page(fname, title, body, desc)))
 
-# --- authors.html -----------------------------------------------------------
-blocks = []
-for a in authors:
-    items = sorted(a["units"], key=lambda b: b["title"])
-    blocks.append(f'<h2 dir="rtl" lang="ar">{e(a["name"])}'
-                  f'<span class="ru">{hijri(a["year"])} · книг: {len(items)}</span></h2>')
-    blocks.append("<ul>" + "".join(book_li(b, show_author=False) for b in items) + "</ul>")
-AUTHORS = page("authors.html", "По авторам — " + SITE_TITLE,
-               '<p class="note">Готовые книги; авторы идут от ранних к поздним, по году смерти.</p>'
-               + "\n".join(blocks))
+# --- authors.html + authors/vek-*.html + author/*.html ----------------------
+# Все авторы «Шамили», по векам хиджры; у каждого автора своя страница с его
+# книгами. Страницы авторов тонкие и их тысячи — от индексации закрыты,
+# чтобы не переспамить выдачу (страницы веков и букв индексируются).
+def vek(d):
+    return (d - 1) // 100 + 1 if d else 0
 
-# --- books.html -------------------------------------------------------------
+vek_name = lambda v: ("%d-й век хиджры (%d–%d г.)" % (v, (v - 1) * 100 + 1, v * 100)
+                      if v else "Год смерти неизвестен")
+
+veks = {}
+for a in au_by_id.values():
+    veks.setdefault(vek(a["d"]), []).append(a)
+
+VEK_PAGES, AUTHOR_PAGES = [], []
+for v in sorted(veks, key=lambda v: (v == 0, v)):
+    lst = sorted(veks[v], key=lambda a: (a["d"] is None, a["d"] or 0, a["n"]))
+    rows = []
+    for a in lst:
+        ready = sum(1 for sb in a["books"] if sb.get("unit"))
+        who = hijri(a["d"]) + " · книг: %d" % len(a["books"]) + \
+              (", готово: %d" % ready if ready else "")
+        rows.append(f'<li><a href="/author/{a["slug"]}.html" dir="rtl" lang="ar"'
+                    f'{" class=have" if ready else ""}>{e(a["n"])}</a>'
+                    f'<span class="who">{who}</span></li>')
+    fname = "authors/vek-%d.html" % v
+    title = "%s — авторы — %s" % (vek_name(v), SITE_TITLE)
+    desc = ("Авторы «аль-Мактаба аш-Шамиля», %s: %d. Книги каждого автора, "
+            "готовые в EPUB можно скачать." % (vek_name(v).lower(), len(lst)))
+    body = (f'<h2>{e(vek_name(v))}<span class="ru">авторов: {len(lst)}</span></h2>'
+            '<ul class="cat">' + "".join(rows) + "</ul>")
+    VEK_PAGES.append((fname, page(fname, title, body, desc, cur="authors.html")))
+
+    for a in lst:
+        ready = sum(1 for sb in a["books"] if sb.get("unit"))
+        fname = "author/%s.html" % a["slug"]
+        title = "%s — %s" % (a["n"], SITE_TITLE)
+        body = (f'<h2 dir="rtl" lang="ar">{e(a["n"])}'
+                f'<span class="ru">{hijri(a["d"])} · книг: {len(a["books"])}'
+                + (f", готово в EPUB: {ready}" if ready else "") + "</span></h2>"
+                '<ul class="cat">' + "".join(sb_li(sb, show_author=False)
+                                             for sb in a["books"]) + "</ul>"
+                f'<p class="note"><a href="/authors/vek-{vek(a["d"])}.html">&larr; '
+                f'{e(vek_name(vek(a["d"])))}</a></p>')
+        AUTHOR_PAGES.append((fname, page(fname, title, body, cur="authors.html",
+                                         noindex=True)))
+
+rows = []
+for v in sorted(veks, key=lambda v: (v == 0, v)):
+    ready = sum(1 for a in veks[v] for sb in a["books"] if sb.get("unit"))
+    who = "авторов: %d" % len(veks[v]) + (", готово книг: %d" % ready if ready else "")
+    rows.append(f'<li><a href="/authors/vek-{v}.html"{" class=have" if ready else ""}>'
+                f'{e(vek_name(v))}</a><span class="who">{who}</span></li>')
+AUTHORS = page("authors.html", "Авторы — " + SITE_TITLE,
+               '<h2>Авторы по векам<span class="ru">все авторы каталога '
+               '«аль-Мактаба аш-Шамиля», от ранних к поздним</span></h2>'
+               '<ul class="cat">' + "".join(rows) + "</ul>")
+
+# --- books.html + harf/*.html: алфавитный указатель --------------------------
+LETTERS = [("ا","alif"),("ب","ba"),("ت","ta"),("ث","tha"),("ج","jim"),("ح","hha"),
+           ("خ","kha"),("د","dal"),("ذ","dhal"),("ر","ra"),("ز","zay"),("س","sin"),
+           ("ش","shin"),("ص","sad"),("ض","dad"),("ط","tta"),("ظ","zza"),("ع","ayn"),
+           ("غ","ghayn"),("ف","fa"),("ق","qaf"),("ك","kaf"),("ل","lam"),("م","mim"),
+           ("ن","nun"),("ه","ha"),("و","waw"),("ي","ya")]
+LETTER_SLUG = dict(LETTERS)
+
+def letter_of(name):
+    n = norm_title(name)
+    if n.startswith("ال") and len(n) > 3:
+        n = n[2:]
+    return n[:1] if n[:1] in LETTER_SLUG else ""
+
+harfs = {}
+for sb in CATALOG["books"]:
+    harfs.setdefault(letter_of(sb["n"]), []).append(sb)
+
+HARF_PAGES = []
+for ch, slug_name in LETTERS + [("", "misc")]:
+    lst = harfs.get(ch)
+    if not lst:
+        continue
+    lst = sorted(lst, key=lambda sb: norm_title(sb["n"]))
+    head = ch or "Прочее"
+    fname = "harf/%s.html" % slug_name
+    title = ("Буква %s — книги — %s" % (ch, SITE_TITLE)) if ch else \
+            ("Прочие книги — %s" % SITE_TITLE)
+    desc = (("Книги «аль-Мактаба аш-Шамиля» на букву «%s»: %d. Артикль «ال» "
+             "не учитывается. Готовые в EPUB отмечены, любую другую можно "
+             "заказать." % (ch, len(lst))) if ch else
+            "Книги «аль-Мактаба аш-Шамиля» вне арабского алфавита: %d." % len(lst))
+    body = (f'<h2 dir="rtl" lang="ar">{e(head)}<span class="ru">книг: {len(lst)}</span></h2>'
+            '<ul class="cat">' + "".join(sb_li(sb) for sb in lst) + "</ul>")
+    HARF_PAGES.append((fname, page(fname, title, body, desc, cur="books.html")))
+
+rows = []
+for ch, slug_name in LETTERS + [("", "misc")]:
+    lst = harfs.get(ch)
+    if not lst:
+        continue
+    ready = sum(1 for sb in lst if sb.get("unit"))
+    who = "книг: %d" % len(lst) + (", готово: %d" % ready if ready else "")
+    rows.append(f'<li><a href="/harf/{slug_name}.html" dir="rtl" lang="ar"'
+                f'{" class=have" if ready else ""}>{e(ch or "Прочее")}</a>'
+                f'<span class="who">{who}</span></li>')
+BOOKS = page("books.html", "Все книги — " + SITE_TITLE,
+             '<h2>Книги по алфавиту<span class="ru">все книги каталога '
+             '«аль-Мактаба аш-Шамиля»; артикль «ال» не учитывается</span></h2>'
+             '<ul class="cat">' + "".join(rows) + "</ul>")
+
+# --- ready.html: готовые книги карточками ------------------------------------
 flat = sorted(units, key=lambda b: (b["year"] is None, b["year"] or 0, b["title"]))
-BOOKS = page("books.html", "Готовые книги — " + SITE_TITLE,
-             '<p class="note">От старых к новым: порядок по году смерти автора.</p>'
+READY = page("ready.html", "Готовые книги — " + SITE_TITLE,
+             '<p class="note">Все готовые книги, от старых к новым: порядок по '
+             'году смерти автора.</p>'
              + "<ul>" + "".join(book_li(b) for b in flat) + "</ul>")
 
 # --- request.html: заявка с подставленным названием -------------------------
@@ -552,9 +669,12 @@ Sitemap: {SITE_URL.rstrip('/')}/sitemap.xml
 Crawl-delay: 1
 """
 
+# Страницы отдельных авторов — noindex, в sitemap не входят.
 sm_urls = ([(f, "1.0" if f == "index.html" else "0.8") for f, _ in PAGES]
            + [(f, "0.6") for f, _ in CAT_PAGES]
-           + [(f, "0.7") for f, _ in BOOK_PAGES])
+           + [(f, "0.7") for f, _ in BOOK_PAGES]
+           + [(f, "0.5") for f, _ in VEK_PAGES]
+           + [(f, "0.5") for f, _ in HARF_PAGES])
 SITEMAP = ('<?xml version="1.0" encoding="UTF-8"?>\n'
            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
            + "".join(
@@ -568,19 +688,20 @@ def write(n, s):
     os.makedirs(os.path.dirname(p) or OUT_DIR, exist_ok=True)
     open(p, "w", encoding="utf-8").write(s)
 
-for d in ("cat", "book"):
+for d in ("cat", "book", "author", "authors", "harf"):
     p = os.path.join(OUT_DIR, d)
     if os.path.isdir(p):
         shutil.rmtree(p)
 write("index.html", INDEX)
 write("authors.html", AUTHORS)
 write("books.html", BOOKS)
+write("ready.html", READY)
 write("thanks.html", THANKS)
 write("request.html", REQUEST)
 write("catalog.xml", OPDS)
 write("robots.txt", ROBOTS)
 write("sitemap.xml", SITEMAP)
-for fname, html_text in CAT_PAGES + BOOK_PAGES:
+for fname, html_text in CAT_PAGES + BOOK_PAGES + VEK_PAGES + HARF_PAGES + AUTHOR_PAGES:
     write(fname, html_text)
 if INDEXNOW_KEY:
     write(INDEXNOW_KEY + ".txt", INDEXNOW_KEY)

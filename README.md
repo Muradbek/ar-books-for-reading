@@ -55,8 +55,11 @@ tools/shamela_catalog.json  полный каталог: 40 разделов, ~8
 tools/fonts/                Amiri, встраивается в каждую книгу
 slugs.txt                   арабское имя файла → латинское имя в URL
 docs/                       готовый сайт: index (разделы), cat/ (все книги раздела),
-                            book/ (карточки готовых), request.html (заявка),
-                            catalog.xml (OPDS), books/ (EPUB-файлы)
+                            authors.html + authors/ (авторы по векам хиджры),
+                            author/ (страница автора; noindex — их ~3200),
+                            books.html + harf/ (все книги по буквам, без «ال»),
+                            ready.html (готовые карточками), book/ (карточки готовых),
+                            request.html (заявка), catalog.xml (OPDS), books/ (EPUB)
 ```
 
 Главная — все 40 разделов «Шамили». Внутри раздела перечислены все его книги:

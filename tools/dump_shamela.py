@@ -21,16 +21,22 @@ cats = [{"id": i, "name": n}
             "SELECT category_id, category_name, category_order FROM category "
             "WHERE category_name != '#' ORDER BY category_order")]
 
-books = [{"n": name, "c": cat, "a": author or "", "d": death if death and death < 9000 else None}
-         for name, cat, author, death in cur.execute(
-             "SELECT b.book_name, b.book_category, a.author_name, a.death_number "
+authors = [{"id": i, "n": name, "d": death if death and death < 9000 else None}
+           for i, name, death in cur.execute(
+               "SELECT author_id, author_name, death_number FROM author "
+               "WHERE author_id IN (SELECT main_author FROM book WHERE hidden = 0)")]
+
+books = [{"n": name, "c": cat, "au": au}
+         for name, cat, au in cur.execute(
+             "SELECT b.book_name, b.book_category, b.main_author "
              "FROM book b LEFT JOIN author a ON a.author_id = b.main_author "
              "WHERE b.hidden = 0 ORDER BY b.book_category, "
              "CASE WHEN a.death_number IS NULL OR a.death_number >= 9000 THEN 1 ELSE 0 END, "
              "a.death_number, b.book_name")]
 
 with open(OUT, "w", encoding="utf-8") as f:
-    json.dump({"categories": cats, "books": books}, f, ensure_ascii=False,
-              separators=(",", ":"))
+    json.dump({"categories": cats, "authors": authors, "books": books}, f,
+              ensure_ascii=False, separators=(",", ":"))
 
-print("категорий: %d, книг: %d -> %s" % (len(cats), len(books), OUT))
+print("категорий: %d, авторов: %d, книг: %d -> %s"
+      % (len(cats), len(authors), len(books), OUT))
