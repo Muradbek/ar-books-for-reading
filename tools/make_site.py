@@ -276,6 +276,11 @@ ul.cat li { padding:9px 0; border-bottom:1px solid #999; }
 ul.cat a { color:#000; }
 ul.cat .who { font-size:15px; display:block; }
 ul.cat .have { font-weight:bold; }
+details { border-bottom:1px solid #999; padding:6px 0; }
+summary { padding:4px 0; cursor:pointer; }
+summary a { color:#000; }
+summary .who { font-size:15px; display:block; margin-right:1.2em; }
+details ul.cat { margin:0 1.2em 6px 0; }
 .badge { font-size:14px; border:1px solid #000; padding:1px 6px; white-space:nowrap; }
 form { border:1px solid #000; padding:12px; }
 label { display:block; margin:0 0 12px 0; }
@@ -521,15 +526,20 @@ def letter_blocks(groups, row):
 
 # --- authors.html + author/*.html --------------------------------------------
 # Все авторы «Шамили» одним списком, от первого до современника: порядок по
-# году смерти, заголовки по векам хиджры, сверху якоря-века. Страницы отдельных
-# авторов тонкие и их ~3200 — они noindex, чтобы не переспамить выдачу.
-def author_row(a):
+# году смерти, заголовки по векам хиджры, сверху якоря-века. Книги автора
+# раскрываются на месте (<details>, без скриптов; старый браузер, не знающий
+# тега, просто покажет список раскрытым). Своя страница — только у автора с
+# готовыми книгами; заявки у всех идут на общий request.html.
+def author_details(a):
     ready = sum(1 for sb in a["books"] if sb.get("unit"))
     who = hijri(a["d"]) + " · книг: %d" % len(a["books"]) + \
           (", готово: %d" % ready if ready else "")
-    return (f'<li><a href="/author/{a["slug"]}.html" dir="rtl" lang="ar"'
-            f'{" class=have" if ready else ""}>{e(a["n"])}</a>'
-            f'<span class="who">{who}</span></li>')
+    name = (f'<a class="have" href="/author/{a["slug"]}.html" dir="rtl" lang="ar">{e(a["n"])}</a>'
+            if ready else f'<span dir="rtl" lang="ar">{e(a["n"])}</span>')
+    return (f'<details><summary>{name}<span class="who">{who}</span></summary>'
+            '<ul class="cat">'
+            + "".join(sb_li(sb, show_author=False) for sb in a["books"])
+            + "</ul></details>")
 
 def vek(d):
     return (d - 1) // 100 + 1 if d else 0
@@ -548,17 +558,21 @@ vek_anchor = ('<p class="note">'
                                for v in vek_keys) + "</p>")
 vek_body = "".join(
     f'<h2 id="v-{v}">{e(vek_name(v))}<span class="ru">авторов: {len(au_groups[v])}</span></h2>'
-    '<ul class="cat">' + "".join(author_row(a) for a in au_groups[v]) + "</ul>"
+    + "".join(author_details(a) for a in au_groups[v])
     for v in vek_keys)
 
 AUTHORS = page("authors.html", "По авторам — " + SITE_TITLE,
                '<h2>По авторам<span class="ru">все авторы каталога '
                '«аль-Мактаба аш-Шамиля», от ранних к поздним по году смерти'
-               '</span></h2>' + vek_anchor + vek_body)
+               '</span></h2>'
+               '<p class="note">Нажмите на автора — раскроется список его книг.</p>'
+               + vek_anchor + vek_body)
 
 AUTHOR_PAGES = []
 for a in au_by_id.values():
     ready = sum(1 for sb in a["books"] if sb.get("unit"))
+    if not ready:
+        continue
     fname = "author/%s.html" % a["slug"]
     title = "%s — %s" % (a["n"], SITE_TITLE)
     body = (f'<h2 dir="rtl" lang="ar">{e(a["n"])}'
