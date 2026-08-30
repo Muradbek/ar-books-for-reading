@@ -2,9 +2,19 @@
 <feed xmlns="http://www.w3.org/2005/Atom" xmlns:opds="http://opds-spec.org/2010/catalog">
   <id>urn:ar-books-for-reading</id>
   <title>Арабские книги для чтения</title>
-  <updated>2026-08-13T00:00:00Z</updated>
+  <updated>2026-08-30T00:00:00Z</updated>
   <link rel="self" type="application/atom+xml;profile=opds-catalog" href="catalog.xml"/>
   <link rel="start" type="application/atom+xml;profile=opds-catalog" href="catalog.xml"/>
+  <entry>
+    <title>الشمائل المحمدية للترمذي - ت الجليمي</title>
+    <author><name>أبو عيسى محمد بن عيسى بن سورة الترمذي</name></author>
+    <category term="السيرة النبوية"/>
+    <id>urn:book:al-shamail-al-muhammadiyya.epub</id>
+    <updated>2026-08-30T00:00:00Z</updated>
+    <content type="text">58 глав, 509 КБ</content>
+    <link rel="http://opds-spec.org/acquisition" type="application/epub+zip"
+          href="books/al-shamail-al-muhammadiyya.epub" length="522189"/>
+  </entry>
   <entry>
     <title>الرد على الجهمية للدارمي - ت البدر</title>
     <author><name>أبو سعيد عثمان بن سعيد الدارمي</name></author>
