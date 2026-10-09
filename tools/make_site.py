@@ -399,6 +399,7 @@ def page(fname, title, body, desc="", cur=None, footer_note="", noindex=False):
 <html lang="ru">
 <head>
 <meta charset="utf-8">
+<meta name="yandex-verification" content="4db0264b6e8138d8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{e(title)}</title>
 {seo_head(fname, title, desc, noindex)}
