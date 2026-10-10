@@ -35,10 +35,10 @@ SITE_NOTE = ("Классические тексты из «аль-Мактаба
 # почта не будет видна в исходнике страницы.
 REQUEST_ENDPOINT = "https://formsubmit.co/ibrmur89@gmail.com"
 # Полный адрес сайта — нужен, чтобы после отправки вернуть на свою страницу.
-SITE_URL = "https://translatearabic.org"
+SITE_URL = "https://library.translatearabic.org"
 # Свой домен: впиши сюда — рядом с сайтом ляжет файл CNAME, который нужен
 # GitHub Pages. Пусто — сайт живёт на адресе github.io.
-DOMAIN = "translatearabic.org"
+DOMAIN = "library.translatearabic.org"
 
 # --- SEO и счётчики ---------------------------------------------------------
 # Номер счётчика Яндекс Метрики (цифры). Пусто — счётчик не вставляется.
@@ -304,6 +304,7 @@ def page_url(fname):
 
 
 def seo_head(fname, title, desc, noindex=False):
+    noindex = True   # библиотека живёт на поддомене только для владельца: из поиска убрана целиком
     """Тот же набор, что на dxfviewer.app и pdfviewer.work — и не больше."""
     if noindex:
         return '<meta name="robots" content="noindex, follow">'
@@ -644,14 +645,7 @@ OPDS = f"""<?xml version="1.0" encoding="utf-8"?>
 
 # --- robots.txt и sitemap.xml ----------------------------------------------
 last = max(b["date"] for b in books)
-ROBOTS = f"""# robots.txt for {DOMAIN or 'ar-books-for-reading'}
-User-agent: *
-Allow: /
-
-Sitemap: {SITE_URL.rstrip('/')}/sitemap.xml
-
-Crawl-delay: 1
-"""
+ROBOTS = f"""# robots.txt for {DOMAIN}\n# Личная библиотека, из поиска закрыта.\nUser-agent: *\nDisallow: /\n"""
 
 # Страницы отдельных авторов — noindex, в sitemap не входят.
 sm_urls = ([(f, "1.0" if f == "index.html" else "0.8") for f, _ in PAGES]
@@ -682,7 +676,8 @@ write("thanks.html", THANKS)
 write("request.html", REQUEST)
 write("catalog.xml", OPDS)
 write("robots.txt", ROBOTS)
-write("sitemap.xml", SITEMAP)
+# sitemap не нужен: поддомен закрыт от индексации
+# write("sitemap.xml", SITEMAP)
 for fname, html_text in CAT_PAGES + BOOK_PAGES + AUTHOR_PAGES:
     write(fname, html_text)
 if INDEXNOW_KEY:
